@@ -22,6 +22,7 @@ there on the finished number. Everything on screen is TeX's own typesetting
 | `preview.html` | Dev aid: draws every glyph large with its measured ink box. |
 | `dev/harness.js` | Runs the page's script in Node on a fake canvas (layout/camera/motion/LOD checks). |
 | `dev/run-chrome.ps1` | One headless-Chrome run: benchmark title or screenshot. |
+| `ROADMAP.md` | Planned next numbers (Graham ladders) and ideas under discussion. |
 
 ## The formula
 
