@@ -21,6 +21,7 @@ from disk (`file://`).
 | `towers.html`, `arrows.html`, `chains.html`, `brackets.html`, `subscripts.html` | The five zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). Arrows and chains *settle* (see *Exact self-similarity*). |
 | `arrows-exact.html`, `chains-exact.html` | The first versions of arrows and chains, forced into their base's exact shape (wide gaps around the rows' `⋯`; the finished number is a column). Kept, and linked from the hub's footer. |
 | `folding.md` | A two-page note: an ascent through the fast-growing hierarchy by iterated folding (to Buchholz's ψ₀(ε_(Ω_ω+1))), defining one large number. |
+| `fold.txt` | The user's own notation for climbing the same ladder: string repetition `r`, numbered quote levels, a ground floor `n` of Conway chains, and one iterator `I` applied to itself; `E(10)` is a number at rung ε₀. |
 | `engine.js` | The engine: layout grammars, exact self-similarity, drawing, level-of-detail bitmaps, camera, motion, the ending, HUD, main loop, test modes. |
 | `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets and subscripts keys). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |

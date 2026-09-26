@@ -1,0 +1,17 @@
+→ is Conway's chained arrow notation.
+
+n' opens a level-n quote and 'n closes it; inside, quotes of other levels are ordinary characters.
+    e.g.  1' a 2' 'b' '2 c '1  is the string  a'b'c
+
+r(n s): repeat the string s n times
+
+n(k) = r(k 1'k r('1) k r(k 1' →k)'1)          e.g.  n(3) = 3 r(3 r(3 r(3 →3) →3) →3)
+
+I(X)(Y)(Z…) = r(k 1'X('1) Y r(k 1')'1)(Z…)
+    k is the last argument (Y itself, if there are no Z's):
+    apply X to Y k times, then hand the rest to the result
+
+E(k) = I r(k 1'(I)'1) (n)(k)                  I followed by k copies of (I), then n, then k
+
+The number:  E(10)
+
