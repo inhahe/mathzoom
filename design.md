@@ -16,7 +16,7 @@ outlines), drawn as vectors, so it stays sharp at every scale.
 | `index.html` | The hub: the four zooms in order of power, each with a live picture of a finished number (its page embedded frozen, `?t=30&click=0&embed`), its rung and what it beats. |
 | `towers.html`, `arrows.html`, `chains.html`, `brackets.html` | The four zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). Arrows and chains *settle* (see *Exact self-similarity*). |
 | `arrows-exact.html`, `chains-exact.html` | The first versions of arrows and chains, forced into their base's exact shape (wide gaps around the rows' `⋯`; the finished number is a column). Kept, and linked from the hub's footer. |
-| `folding.md` | Two pages of English describing a number built by folding the fold itself, rung by rung, as far as notation reaches (from the discussion that led to these pages). |
+| `folding.md` | A two-page note: an ascent through the fast-growing hierarchy by iterated folding (to Buchholz's ψ₀(ε_(Ω_ω+1))), defining one large number. |
 | `engine.js` | The engine: layout grammars, exact self-similarity, drawing, level-of-detail bitmaps, camera, motion, the ending, HUD, main loop, test modes. |
 | `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets key). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |

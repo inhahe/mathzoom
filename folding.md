@@ -1,94 +1,117 @@
-# Folding all the way up
+# Iterated Folding: A Short Ascent Through the Fast-Growing Hierarchy
 
-A number described in English with one idea — the **fold** — applied to itself
-as many times as fits on two pages.
+**Abstract.** Starting from the successor function and a single operation of
+diagonalization ("folding"), we describe a sequence of increasingly powerful
+mechanisms, each of which folds over everything constructed before it. The
+ascent passes through the Veblen hierarchy to Buchholz's collapsing functions and
+yields a finite number, defined in two pages, whose growth rate lies far beyond
+that of Friedman's TREE function.
 
-## The two moves
+## 1. Definitions
 
-Start from the simplest operation there is: **adding one**, F₀(n) = n + 1.
-Every other rung is built from it with two moves:
+Rungs of the hierarchy are named by countable ordinals. Every limit ordinal λ
+used below carries a *fundamental sequence* λ[0] < λ[1] < λ[2] < … converging to
+λ. Define functions F_α on the natural numbers by
 
-- **Step.** The next rung repeats the one before it *n* times:
-  F<sub>r+1</sub>(n) = F<sub>r</sub>(F<sub>r</sub>(⋯F<sub>r</sub>(n)⋯)), *n* applications.
-- **Fold.** Given an endless climbing list of rungs r₁ < r₂ < r₃ < …, their fold
-  means *go n rungs up the list and apply that rung to n*:
-  F<sub>r</sub>(n) = F<sub>rₙ</sub>(n).
+- F₀(n) = n + 1;
+- **step:** F_(α+1)(n) = F_α(F_α(⋯F_α(n)⋯)), with n applications of F_α;
+- **fold:** F_λ(n) = F_(λ[n])(n) for limit λ.
 
-Every rung below has a name (an ordinal — the standard one is in brackets) and,
-if it is a fold, the list it folds. So every rung applied to a number is one
-definite, finite number.
+A step iterates the previous rung; a fold diagonalizes over an endless increasing
+list of rungs, evaluating its n-th member at n. For every ordinal named below and
+every n, F_α(n) is a well-defined natural number. (This is the fast-growing
+hierarchy of Löb and Wainer [7].)
 
-## The ladder
+## 2. The hierarchy
 
-1. **Steps** — rungs 0, 1, 2, 3, …: adding one repeated is doubling (F₁), doubling
-   repeated is exponential (F₂), then towers (F₃), then Knuth's ↑↑↑ (F₄), and so on.
-2. **The first fold** — ω folds 0, 1, 2, …: F<sub>ω</sub>(n) = F<sub>n</sub>(n), as many
-   arrows as the number itself.
-3. **Steps after a fold** — ω+1, ω+2, … (Graham's number is here, at ω+1);
-   **the second fold** ω·2 folds ω+1, ω+2, …; then ω·3, ω·4, …
-4. **Folds of folds** — ω² folds ω, ω·2, ω·3, …; then ω³, ω⁴, …; ω<sup>ω</sup> folds
-   ω, ω², ω³, …
-5. **A tower of folds whose height is a variable** (your `w(x)`) — ε₀ folds
-   ω, ω<sup>ω</sup>, ω<sup>ω<sup>ω</sup></sup>, …
-6. **The tower trick, restarted on top of itself** — ε₁ folds ε₀+1,
-   ω<sup>ε₀+1</sup>, ω<sup>ω<sup>ε₀+1</sup></sup>, …; then ε₂, ε₃, …; then the index
-   itself a variable: ε<sub>ω</sub>, ε<sub>ε₀</sub>, ε<sub>ε<sub>ε₀</sub></sub>, …, folded
-   where the index catches up with the result: ζ₀.
-7. **Letters for tricks** (your `a`–`z`) — call the trick that makes ε's **a**. Trick
-   **b** feeds a's output back into a until it catches up with itself (it makes
-   ζ₀, ζ₁, …). Trick **c** does the same to b, and so on to **z**. [Veblen's
-   φ₁, φ₂, …, φ₂₆; plain ω<sup>x</sup> is φ₀.]
-8. **The letter as a variable** — the ω-th trick, the ε₀-th trick, …, folded where
-   the letter's number catches up with the result: Γ₀, folding 1, ε₀, the ε₀-th
-   trick at 0, the (that)-th trick at 0, … [Feferman–Schütte's Γ₀.]
-9. **More slots** (your `1a`, `2a`, `a1a`, …) — write a trick's name as a list of
-   slots, (letter, input), rather than one letter. A new slot in front folds every
-   name with fewer slots. This is what your prefixed digit did; written as a list,
-   it can't be misread as multiplication. (1, 0, 0) is Γ₀; then (1, 0, 1),
-   (1, 1, 0), (2, 0, 0), …; with the front slot a variable and folded: (1, 0, 0, 0)
-   [the Ackermann ordinal]; then five slots, six, …
-10. **The number of slots as a variable** (your `..`, `...`, `....`) — folds
-    (1, 0, 0), (1, 0, 0, 0), (1, 0, 0, 0, 0), …: the **small Veblen ordinal**.
-    TREE(3) lives about here.
-11. **Slots numbered by rungs** (your `.(x).`) — allow an ω-th slot, an ε₀-th slot,
-    a slot numbered by any rung already named, and fold where the slot's number
-    catches up with the result (your `.(.(.(x).).).`, nested as deep as a variable
-    says): the **large Veblen ordinal**.
-12. **Name the unreachable** — every trick so far builds up from below, and each
-    has a first rung it cannot reach; that rung is what the next trick folds. So
-    name it directly: take a placeholder Ω for "a rung nothing below can reach",
-    let every trick above work on Ω like any other rung (Ω+1, ε<sub>Ω+1</sub>, …),
-    then collapse each result down to the first rung that could not have been
-    built without Ω. One placeholder reaches the **Bachmann–Howard ordinal**
-    ψ(ε<sub>Ω+1</sub>). A tower of placeholders — Ω₁ < Ω₂ < Ω₃ < …, and Ω<sub>ω</sub>
-    above them all, each collapsing into the one below — reaches
-    ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>), the **Takeuti–Feferman–Buchholz ordinal**.
+Each stage introduces one mechanism that folds over all preceding ones.
 
-## The number
+1. **Finite rungs.** F₁(n) = 2n, F₂(n) = n·2ⁿ, and F₃ already grows faster than
+   towers of exponentials; in general F_k grows like k−1 of Knuth's up-arrows.
+2. **The first fold.** ω, with ω[n] = n, so F_ω(n) = F_n(n): Ackermann's function.
+3. **Iterated folds.** ω+1, ω+2, …, then ω·2 with (ω·2)[n] = ω+n, then ω·3, …
+   For comparison, F_(ω+1)(64) exceeds Graham's number.
+4. **Folds of folds.** ω² with ω²[n] = ω·n, then ω³, …, and ω^ω with
+   (ω^ω)[n] = ωⁿ.
+5. **Towers of variable height.** ε₀, with ε₀[n] a tower of n ω's:
+   ω, ω^ω, ω^(ω^ω), …
+6. **Restarting the tower.** ε₁ folds ε₀+1, ω^(ε₀+1), ω^(ω^(ε₀+1)), …; likewise
+   ε₂, ε₃, …; with the index itself variable, ε_ω, ε_(ε₀), ε_(ε_(ε₀)), …, whose limit
+   ζ₀ is the first ordinal with ε_(ζ₀) = ζ₀.
+7. **A hierarchy of fixed-point operations** (Veblen [1]). Let φ₀(α) = ω^α, and let
+   φ_(β+1) enumerate the fixed points of φ_β; at limits, φ_β enumerates the common
+   fixed points of all earlier φ_γ. Then φ₁(α) = ε_α and φ₂(0) = ζ₀; each φ_(β+1)
+   folds over φ_β.
+8. **The index as a variable.** The Feferman–Schütte ordinal Γ₀ [2], the least α
+   with φ_α(0) = α, folds 1, ε₀, φ_(ε₀)(0), φ_(φ_(ε₀)(0))(0), …
+9. **Additional arguments.** Veblen's functions extend to several arguments, each
+   new argument folding over all functions with fewer: φ(1, 0, 0) = Γ₀, then
+   φ(1, 0, 1), φ(1, 1, 0), φ(2, 0, 0), …; four arguments give the Ackermann ordinal
+   φ(1, 0, 0, 0); then five, six, …
+10. **The number of arguments as a variable.** The limit of φ(1, 0, 0),
+    φ(1, 0, 0, 0), φ(1, 0, 0, 0, 0), … is the **small Veblen ordinal**. The growth
+    rate of Friedman's TREE function lies in the vicinity of this ordinal.
+11. **Transfinitely many arguments.** Allowing argument positions indexed by
+    ordinals, and folding at the point where the index of the leading position
+    reaches the value itself, gives the **large Veblen ordinal**.
+12. **Collapsing** (Bachmann [3], Howard [4], Buchholz [5]). Every mechanism above
+    builds upward from below, and each has a first ordinal it cannot reach.
+    Collapsing names such ordinals directly: one introduces a symbol Ω for an
+    ordinal that no construction from below attains, applies all the preceding
+    mechanisms to expressions involving Ω, and maps ("collapses") each resulting
+    term to the least ordinal not obtainable without it. A single Ω yields the
+    **Bachmann–Howard ordinal** ψ(ε_(Ω+1)). An increasing sequence
+    Ω₁ < Ω₂ < Ω₃ < … with supremum Ω_ω, each level collapsing into the one below,
+    yields ψ₀(ε_(Ω_ω+1)), the **Takeuti–Feferman–Buchholz ordinal**.
 
-> **Rung ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>) applied to 10** —
-> F<sub>ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>)</sub>(10), with F₀(n) = n + 1, using Buchholz's
-> ψ-functions (1986) and their standard fold lists.
+Fundamental sequences for the ordinals of stages 7–12 are standard and are
+omitted for brevity.
 
-Everything is built from adding one: no big number is borrowed, and the depth
-comes from the rungs alone. (Starting from something huge, like TREE, would not
-go any deeper — its head start is swallowed long before the top, like adding a
-million to a googolplex.)
+## 3. The number
 
-The same strength as a game: Buchholz's hydra, a tree whose node labels
-0, 1, 2, …, ω are the placeholders of step 12, cut down by rules that do all this
-folding automatically.
+> **N = F_α(10), where α = ψ₀(ε_(Ω_ω+1)),** evaluated with Buchholz's
+> ψ-functions [5] and their standard fundamental sequences.
 
-**How big.** Far past TREE(3), which sits near step 10, and past everything built
-by nesting Veblen's slots. Still believed smaller than Loader's number, and
-nowhere near the busy-beaver numbers or Rayo's number, which leave notation
-behind altogether.
+## 4. Remarks
 
-## Why it never ends
+**On the base function.** Replacing F₀ by a much faster function, such as TREE,
+does not raise the growth rate at this height: such a base contributes an
+ordinal β far below α, and β + α = α.
 
-Each step is one idea that folds everything before it, and each has a first rung
-it cannot name — which is exactly what the next step folds. Placeholders go much
-further than step 12 (placeholders for "unreachable even by placeholders":
-inaccessible, Mahlo, weakly compact, …), but any notation that can be written
-down has a first thing it cannot name. The only way past all of them is to talk
-about what notations can say at all — which is where Rayo's number lives.
+**A combinatorial equivalent.** The ordinal α also measures the termination of
+Buchholz's hydra game [6], in which the node labels 0, 1, 2, …, ω play the role of
+the symbols Ω₁, Ω₂, …, Ω_ω, and the rules for cutting the hydra carry out the
+folding of Section 2 automatically.
+
+**Comparisons.** The function n ↦ F_α(n) eventually dominates every function in
+the Veblen hierarchy, including Friedman's TREE function. It is generally
+believed to be dominated in turn by the function D underlying Loader's number,
+which diagonalizes over all normalizing terms of the Calculus of Constructions.
+Both are computable, and both are eventually dominated by the busy-beaver
+function; N itself is definable in far fewer than a googol symbols of
+first-order set theory, and so is smaller than Rayo's number.
+
+**Limits.** Each stage of Section 2 folds over everything before it, and each has
+a first ordinal it cannot name, which is precisely what the next stage folds.
+Collapsing extends much further than stage 12, using symbols for inaccessible,
+Mahlo, and weakly compact ordinals; but every notation system that can be
+written down has a least ordinal it cannot reach. There is no final stage.
+
+## References
+
+1. O. Veblen, "Continuous increasing functions of finite and transfinite
+   ordinals", *Transactions of the American Mathematical Society* 9 (1908),
+   280–292.
+2. S. Feferman, "Systems of predicative analysis", *Journal of Symbolic Logic* 29
+   (1964), 1–30.
+3. H. Bachmann, "Die Normalfunktionen und das Problem der ausgezeichneten Folgen
+   von Ordinalzahlen", *Vierteljahrsschrift der Naturforschenden Gesellschaft in
+   Zürich* 95 (1950), 115–147.
+4. W. A. Howard, "A system of abstract constructive ordinals", *Journal of
+   Symbolic Logic* 37 (1972), 355–374.
+5. W. Buchholz, "A new system of proof-theoretic ordinal functions", *Annals of
+   Pure and Applied Logic* 32 (1986), 195–207.
+6. W. Buchholz, "An independence result for (Π¹₁-CA)+BI", *Annals of Pure and
+   Applied Logic* 33 (1987), 131–155.
+7. M. H. Löb and S. S. Wainer, "Hierarchies of number-theoretic functions I",
+   *Archiv für mathematische Logik und Grundlagenforschung* 13 (1970), 39–51.
