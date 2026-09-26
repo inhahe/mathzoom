@@ -5,8 +5,8 @@ as many times as fits on two pages.
 
 ## The two moves
 
-Start from a ground-floor operation on numbers: here, Friedman's **TREE(n)**.
-Rungs are built from it with two moves:
+Start from the simplest operation there is: **adding one**, F₀(n) = n + 1.
+Every other rung is built from it with two moves:
 
 - **Step.** The next rung repeats the one before it *n* times:
   F<sub>r+1</sub>(n) = F<sub>r</sub>(F<sub>r</sub>(⋯F<sub>r</sub>(n)⋯)), *n* applications.
@@ -20,10 +20,12 @@ definite, finite number.
 
 ## The ladder
 
-1. **Steps** — rungs 0, 1, 2, 3, …
-2. **The first fold** — ω folds 0, 1, 2, …: F<sub>ω</sub>(n) = F<sub>n</sub>(n).
-3. **Steps after a fold** — ω+1, ω+2, …; **the second fold** ω·2 folds ω+1, ω+2, …;
-   then ω·3, ω·4, …
+1. **Steps** — rungs 0, 1, 2, 3, …: adding one repeated is doubling (F₁), doubling
+   repeated is exponential (F₂), then towers (F₃), then Knuth's ↑↑↑ (F₄), and so on.
+2. **The first fold** — ω folds 0, 1, 2, …: F<sub>ω</sub>(n) = F<sub>n</sub>(n), as many
+   arrows as the number itself.
+3. **Steps after a fold** — ω+1, ω+2, … (Graham's number is here, at ω+1);
+   **the second fold** ω·2 folds ω+1, ω+2, …; then ω·3, ω·4, …
 4. **Folds of folds** — ω² folds ω, ω·2, ω·3, …; then ω³, ω⁴, …; ω<sup>ω</sup> folds
    ω, ω², ω³, …
 5. **A tower of folds whose height is a variable** (your `w(x)`) — ε₀ folds
@@ -64,19 +66,23 @@ definite, finite number.
 
 ## The number
 
-> **Rung ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>) applied to 10, on the TREE ground floor** —
-> F<sub>ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>)</sub>(10), with F₀ = TREE, using Buchholz's
+> **Rung ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>) applied to 10** —
+> F<sub>ψ₀(ε<sub>Ω<sub>ω</sub>+1</sub>)</sub>(10), with F₀(n) = n + 1, using Buchholz's
 > ψ-functions (1986) and their standard fold lists.
+
+Everything is built from adding one: no big number is borrowed, and the depth
+comes from the rungs alone. (Starting from something huge, like TREE, would not
+go any deeper — its head start is swallowed long before the top, like adding a
+million to a googolplex.)
 
 The same strength as a game: Buchholz's hydra, a tree whose node labels
 0, 1, 2, …, ω are the placeholders of step 12, cut down by rules that do all this
 folding automatically.
 
 **How big.** Far past TREE(3), which sits near step 10, and past everything built
-by nesting Veblen's slots. The TREE ground floor only helped until step 10:
-beyond that, a head start that size is like adding a million to a googolplex.
-Still believed smaller than Loader's number, and nowhere near the busy-beaver
-numbers or Rayo's number, which leave notation behind altogether.
+by nesting Veblen's slots. Still believed smaller than Loader's number, and
+nowhere near the busy-beaver numbers or Rayo's number, which leave notation
+behind altogether.
 
 ## Why it never ends
 
