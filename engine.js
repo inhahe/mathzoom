@@ -15,6 +15,9 @@
 //   label     the seed's size relative to the level's type (default 0.7)
 //   key       optional glyph shown at the start: what the notation means
 //   cx, cy    optional default screen position of the zoom centre
+//   settle    let the proportions settle over the first levels instead of
+//             forcing level 2 into the base's exact shape (see "Exact
+//             self-similarity" below)
 // See design.md for the whole design.
 function mathzoom(NOTE) {
 "use strict";
@@ -35,6 +38,7 @@ const G = window.GLYPHS, B = window.BRACES, M = window.METRICS;
 const BASE = NOTE.base, SEED = G.seed, CDOTS = G.cdots, VDOTS = G.vdots;
 const BRACKETS = NOTE.grammar === 'brackets';
 const TOP_ODD = NOTE.top === 'V';
+const SETTLE = !!NOTE.settle;
 
 const CFG = {
   // Each level is typeset at one "font size" f, proportional to its children's
@@ -153,9 +157,10 @@ function buildLevel(kind, ca, opts = {}) {
 // is TeX's natural setting and each level's type suits what it encloses. A row's
 // brace spans its child's height; below BRACE_MIN pt at its own font, TeX's brace
 // pieces would overlap into a squat bar, so a row's font is capped there (wide
-// bases — an arrow run, a chain — make short, wide columns). HS then scales rows'
-// type down where equal growth needs it (see below).
-const BRACE_MIN = 44;
+// bases — an arrow run, a chain — make short, wide columns). Likewise a column's
+// underbraces must span at least UBRACE_MIN pt (see braceLevel). HS then scales
+// rows' type down where equal growth needs it (see below).
+const BRACE_MIN = 44, UBRACE_MIN = 24;
 function fontOf(kind, cw, ch) {
   const f = CFG.font * Math.min(cw, ch);
   if (kind === 'V') return f;
@@ -172,12 +177,12 @@ function fontOf(kind, cw, ch) {
 function braceLevel(kind, ca, { outer = false, span = null } = {}) {
   const cw = ca, ch = 1;
   const kids = [], decos = [];
-  const f = fontOf(kind, cw, ch);
+  const bx = span ? span[0] : 0, bl = span ? span[1] - span[0] : cw;   // a column's underbraces
+  const f = kind === 'V' ? Math.min(fontOf('V', cw, ch), bl / UBRACE_MIN) : fontOf('H', cw, ch);
   const lf = f * CFG.label;                      // seed label scale
   if (kind === 'V') {
     const k3 = 3 * f;                            // TeX's \underbrace kern (3pt)
     const ubH = B.ubrace.h * f;
-    const bx = span ? span[0] : 0, bl = span ? span[1] - span[0] : cw;
     const mid = bx + bl / 2;                     // braces, dots and seed centre here
     let y = 0;
     const child = () => { kids.push({ x: 0, y, s: ch }); y += ch; };
@@ -281,9 +286,17 @@ function finish(W, H, kids, decos, last) {
 // like level 1, and the whole structure is periodic with period 2 from the very
 // start. Measured with trial levels built from the base's actual proportions, so
 // it tracks the notation and ?font / ?label.
+//
+// A settling notation (NOTE.settle) does neither. With the type caps above, a
+// row's decorations are sized by its children's height rather than their width,
+// so a row that is too narrow for its column gets relatively wider decorations
+// next time round, and vice versa: the aspect ratio converges geometrically to a
+// fixed shape, whatever the base (about 2.2 : 1 rows). The first few levels have
+// their own proportions; from about level 12 the structure is periodic to many
+// digits, and exactly (in doubles) well before the table ends at NMAX.
 let HS = 1, PAD = 0;
 const K_V = (() => { const v = buildLevel('V', BASE.w / BASE.h); return 1 / v.kids[v.last].s; })();
-{
+if (!SETTLE) {
   const a1 = BASE.w / BASE.h / K_V;              // a column's aspect ratio
   const d1 = buildLevel('H', a1).a - 3 * a1;     // a row's decorations, as is
   const dt = (K_V - 3) * a1;                     // what equal growth needs
@@ -321,9 +334,30 @@ const C = [];
 }
 const cen = n => C[par(n)];
 // Height ratio level n / level n-1. A row is no taller than its children (they
-// sit side by side), so it is 1 there; a column's is the same for every column.
+// sit side by side), so it is 1 there.
 const grow = n => 1 / lvl(n).kids[lvl(n).last].s;
-const PERIOD_LOG = Math.log(grow(3) * grow(4));  // ln(zoom per period of 2 levels)
+// Log-heights of the even levels, relative to level 2: exact through the table,
+// periodic after it. In an exact notation every period grows by the same factor
+// and this is a straight line; in a settling one the first periods differ.
+// lhe(x) continues it linearly between even levels; lheInv inverts it.
+const LHE = [];
+LHE[2] = 0;
+for (let n = 4; n <= NMAX; n += 2) LHE[n] = LHE[n - 2] + Math.log(grow(n - 1) * grow(n));
+const PERIOD_LOG = Math.log(grow(NMAX - 1) * grow(NMAX));   // ln(zoom per period), for good
+const FIRST_LOG = LHE[4];                                   // the first period's
+function lhe(x) {
+  if (x >= NMAX) return LHE[NMAX] + (x - NMAX) / 2 * PERIOD_LOG;
+  if (x < 2) return (x - 2) / 2 * FIRST_LOG;
+  const k = 2 * Math.floor(x / 2);
+  return LHE[k] + (x - k) / 2 * (LHE[k + 2] - LHE[k]);
+}
+function lheInv(v) {
+  if (v >= LHE[NMAX]) return NMAX + 2 * (v - LHE[NMAX]) / PERIOD_LOG;
+  if (v < 0) return 2 + 2 * v / FIRST_LOG;
+  let k = 2;
+  while (LHE[k + 2] <= v) k += 2;
+  return k + 2 * (v - LHE[k]) / (LHE[k + 2] - LHE[k]);
+}
 
 // ---- The finished number's outermost level -----------------------------------
 // Until the click the level that becomes the outermost one was an ordinary
@@ -331,26 +365,38 @@ const PERIOD_LOG = Math.log(grow(3) * grow(4));  // ln(zoom per period of 2 leve
 // the ordinary level, at w = 1 the outermost one. Children and decorations are
 // matched by position and id and blended; one that only one version has shrinks
 // and fades out of (or grows and fades into) the place its `gone` twin marks.
-// The layout is periodic, so one pair of layouts serves every possible top.
-const TOP_REF = TOP_ODD ? LEVELS[3] : LEVELS[2];
-const OUTER = buildLevel(TOP_ODD ? 'V' : 'H', TOP_ODD ? LEVELS[2].a : LEVELS[1].a, { outer: true });
-const OUTER_DECO = new Map(OUTER.decos.map(d => [d.id, d]));
+// The pair of layouts is cached per top level: in an exact notation it is the
+// same for every top of a kind, in a settling one once the shape has settled.
+const outers = new Map();
+function outerFor(N) {
+  const p = par(N);
+  let o = outers.get(p);
+  if (!o) {
+    const out = buildLevel(p % 2 ? 'V' : 'H', LEVELS[par(N - 1)].a, { outer: true });
+    o = { ref: LEVELS[p], out, byId: new Map(out.decos.map(d => [d.id, d])) };
+    outers.set(p, o);
+  }
+  return o;
+}
+const N_INF = TOP_ODD ? NMAX - 1 : NMAX;         // a top whose shape has long settled
+const OUTER = outerFor(N_INF).out;
 const lerp = (a, b, w) => a + (b - a) * w;
 function outerLevel(w, N) {
-  const kids = TOP_REF.kids.map((k, i) => {
-    const o = OUTER.kids[i];
+  const { ref, out, byId } = outerFor(N);
+  const kids = ref.kids.map((k, i) => {
+    const o = out.kids[i];
     return { x: lerp(k.x, o.x, w), y: lerp(k.y, o.y, w), s: lerp(k.s, o.s, w) };
   });
-  const decos = TOP_REF.decos.map(d => {
-    const o = OUTER_DECO.get(d.id), e = { ...d };
+  const decos = ref.decos.map(d => {
+    const o = byId.get(d.id), e = { ...d };
     for (const p of ['x', 'y', 's', 'f', 'len']) if (d[p] !== undefined) e[p] = lerp(d[p], o[p], w);
     const alpha = lerp(d.gone ? 0 : 1, o.gone ? 0 : 1, w);
     delete e.gone;
     if (alpha < 1) e.alpha = alpha;
     return e;
   });
-  const k = kids[TOP_REF.last], c = cen(N - 1);
-  return { a: lerp(TOP_REF.a, OUTER.a, w), kids, decos, last: TOP_REF.last,
+  const k = kids[ref.last], c = cen(N - 1);
+  return { a: lerp(ref.a, out.a, w), kids, decos, last: ref.last,
            C: { x: k.x + k.s * c.x, y: k.y + k.s * c.y } };     // the zoom centre in it
 }
 
@@ -372,7 +418,9 @@ const MIN_DECO = 0.35;                           // skip decorations smaller tha
 // >= LOD_LEVEL, so two bitmap families serve the whole infinite tail; each
 // earlier level gets its own.
 const CACHE_PX = 96;                             // CSS px; nodes this big stay vectors
-const LOD_LEVEL = 10;                            // bases are ~6^-5 of the node here
+// Bases are ~6^-5 of a node at level 10; a settling notation's shape has also
+// settled (to ~10^-5) by level 16.
+const LOD_LEVEL = SETTLE ? 16 : 10;
 const lodKey = n => (n < LOD_LEVEL ? n : LOD_LEVEL + ((n - LOD_LEVEL) % 2));
 const caches = new Map();
 let building = false;
@@ -436,21 +484,28 @@ function drawLevel(n, X, Y, H) {
 // A position along the zoom is a "framed level" λ: at λ = N, level N — finished
 // as the outermost level — exactly fills the framing box, centred. Even level n's
 // screen height at λ is
-//   hRef · e^((n − λ)·PERIOD_LOG/2)
-// so one unit of λ is a zoom of e^(PERIOD_LOG/2): "one level". (When the finished
-// number is a column, an odd level, hRef is set so that λ = N still frames it.)
+//   hRef · e^(lhe(n) − lhe(λ))
+// so one unit of λ is "one level" (a zoom of e^(PERIOD_LOG/2) once the shape has
+// settled). hRef frames a settled top; hFit(N) is top N's own framing height,
+// which lamEnd(N) turns into the exact position where the zoom stops. (When the
+// finished number is a column, an odd level, hRef is set so that λ = N still
+// frames a settled one.)
 const FIT_W = 0.92, FIT_H = 0.84;                // framing box, fraction of the viewport
-const hFit = () => Math.min(VH * FIT_H, VW * FIT_W / OUTER.a);
+const hFit = (N = N_INF) => Math.min(VH * FIT_H, VW * FIT_W / outerFor(N).out.a);
 // For an odd top N: at λ = N, even level N−1 is hRef·e^(−P/2) tall and N is
-// grow(3) times that, which must be hFit.
-const hRef = () => hFit() * (TOP_ODD ? Math.exp(PERIOD_LOG / 2) / grow(3) : 1);
+// grow(N) times that, which must be hFit.
+const hRef = () => hFit() * (TOP_ODD ? Math.exp(PERIOD_LOG / 2) / grow(N_INF) : 1);
+function lamEnd(N) {
+  const target = N % 2 ? hFit(N) / grow(N) : hFit(N);   // of level N, or N−1 below an odd N
+  return lheInv(lhe(N % 2 ? N - 1 : N) - Math.log(target / hRef()));
+}
 // The start: level 1's last base and everything below it (its underbrace and
 // the seed) fill 70% of the screen height — or 90% of its width, if the base is
 // that wide. That fixes level 1's height, and so level 2's.
 function lamStart() {
   const L1 = LEVELS[1], lk = L1.kids[L1.last];
   const h1 = Math.min(VH * 0.7 / (1 - lk.y), VW * 0.9 / L1.a);
-  return 2 - 2 * Math.log(h1 * grow(2) / hRef()) / PERIOD_LOG;
+  return lheInv(-Math.log(h1 * grow(2) / hRef()));
 }
 // The layout repeats every 2 levels, and from level LAM_W up nothing below level
 // ~LAM_W−30 is ever visible, so there only λ mod 2 matters: positions are shifted
@@ -470,8 +525,10 @@ const cam = { lam: 0, K: 2, h: 1, px: 0, py: 0, top: Infinity, outer: null, root
 function setCamera(lam, top, px, py, outer = null) {
   cam.lam = lam;
   cam.K = Math.max(2, 2 * Math.ceil(lam / 2));
-  cam.h = hRef() * Math.exp((cam.K - lam) * PERIOD_LOG / 2);
-  if (cam.K > top) { cam.h /= grow(cam.K); cam.K -= 1; }   // above an odd top: use the top
+  cam.h = hRef() * Math.exp(lhe(cam.K) - lhe(lam));
+  // Above the top (an odd top; or a top framed a little further out, while the
+  // shape settles): step down to it — there is nothing above it.
+  while (cam.K > top) { cam.h /= grow(cam.K); cam.K -= 1; }
   cam.px = px; cam.py = py; cam.top = top; cam.outer = outer;
 }
 const layoutOf = n => (n === cam.top ? cam.outer : lvl(n));
@@ -567,9 +624,11 @@ function startEnding() {
   // unless none has been shown yet (flicker frames always have λ >= LAM_W).
   if (exact || cam.lam < LAM_W) updateView();
   const [root] = coverLevel();
-  const N = topAtOrAbove(Math.max(cam.lam + D_MIN, root));   // wrapped, like cam.lam
+  let N = topAtOrAbove(Math.max(cam.lam + D_MIN, root));     // wrapped, like cam.lam
+  while (lamEnd(N) < cam.lam + D_MIN) N += 2;               // (a top framed nearer in)
+  const end = lamEnd(N);                                    // = N once shapes have settled
   E = {
-    N, D: N - cam.lam, R: N - cam.lam, tau: 0, lnv: lnSpeed(clock),
+    N, end, D: end - cam.lam, R: end - cam.lam, tau: 0, lnv: lnSpeed(clock),
     // For the HUD: the true level numbers are the wrapped ones plus `shift`;
     // when astronomical, only their logarithm (the distance come) is kept.
     shift: exact ? wrap(lamStart() + Math.exp(lp))[1] : null, lnN: lp,
@@ -605,15 +664,16 @@ function updateView() {
     setCamera(wrap(lam)[0], Infinity, px0, py0);
     return { v: lam };
   }
-  // Ending / done: λ = N − R, in the wrapped numbering fixed at the click.
-  const lam = E.N - E.R;
+  // Ending / done: λ = end − R, in the wrapped numbering fixed at the click.
+  const lam = E.end - E.R;
   const w = smootherstep(Math.min(1, Math.max(0, 1 - E.R / E.D)));
-  const outer = outerLevel(w, E.N), hf = hFit();
+  const outer = outerLevel(w, E.N), hf = hFit(E.N);
   // Drift the zoom centre to where centring the top level puts it.
   const px = px0 + w * (VW / 2 + (outer.C.x - outer.a / 2) * hf - px0);
   const py = py0 + w * (VH / 2 + (outer.C.y - 0.5) * hf - py0);
   setCamera(lam, E.N, px, py, outer);
-  return E.shift !== null ? { v: lam + E.shift } : { ln: E.lnN };
+  if (E.shift === null) return { ln: E.lnN };
+  return { v: (mode === 'done' ? E.N : lam) + E.shift };   // finished: its number of levels
 }
 
 // ============================================================================

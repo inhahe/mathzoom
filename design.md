@@ -15,6 +15,7 @@ outlines), drawn as vectors, so it stays sharp at every scale.
 |---|---|
 | `index.html` | The hub: the four zooms in order of power, each with a live picture of a finished number (its page embedded frozen, `?t=30&click=0&embed`), its rung and what it beats. |
 | `towers.html`, `arrows.html`, `chains.html`, `brackets.html` | The four zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). |
+| `arrows2.html`, `chains2.html` | Trial versions of arrows and chains whose proportions *settle* instead of being forced (see *Exact self-similarity*); not yet linked from the hub. |
 | `engine.js` | The engine: layout grammars, exact self-similarity, drawing, level-of-detail bitmaps, camera, motion, the ending, HUD, main loop, test modes. |
 | `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets key). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |
@@ -110,6 +111,29 @@ region reads naturally as "many more columns here"). Measured at start-up from
 trial levels built from the base's actual proportions. Then `a₂ = a₀` to within
 a few 10⁻¹⁶ and every level repeats with period 2 from the start.
 
+**Why towers fit and arrows/chains need filler.** The stuff between a column's
+entries (underbraces, kerns, `⋮`, seed: ~51 pt) is sized by the type, not the
+entry. A tower is 16 pt tall, so a column is ~6.1 towers tall, and a row of 3
+columns plus its braces at natural size comes out ~6.3 columns wide — nearly
+equal by the luck of the tower's shape. `10↑↑⋯↑10` (8.8 pt tall) and a chain
+(6.5 pt) make columns 8.8× and 10.9× their entries, while a row's braces cover
+only ~1.4 / ~0.8 of a (wide) column: the rest must be filler.
+
+**Settling instead (`settle: true`; `arrows2.html`, `chains2.html`).** Don't force
+level 2 into the base's shape. With the type caps (a row's brace ≥ 44 pt, a
+column's underbrace ≥ 24 pt at its own font), a row's decorations scale with its
+children's height rather than their width, so a row that is too narrow for its
+column gets relatively wider decorations next time and vice versa: the aspect
+ratio converges geometrically (×0.16 per period) to a fixed shape — rows
+2.157 : 1, columns 0.285, ×7.57 per period — the same for both bases, close to
+the towers' own proportions. The first levels have their own proportions (rows
+3.5 → 2.5 → 2.2 …); by level 12 it is periodic to 5·10⁻⁴, by NMAX exactly in
+doubles. The camera therefore uses the real heights of the even levels (the
+`LHE` table, continued periodically; a straight line for exact notations, so
+those pages are unchanged), each finished level gets its own outermost layout and
+framing height (`outerFor(N)`, `hFit(N)`), and `lamEnd(N)` is the exact position
+where the zoom stops to frame it.
+
 ## Typesetting
 
 - **Glyphs** are TeX's own: typeset by Tectonic (XeTeX, Computer Modern Type 1),
@@ -165,8 +189,10 @@ the pieces of a tall `\left[`.
   Until the ending it sits at screen position `(cx, cy)`.
 - **Position = the framed level λ.** At λ = N level N, drawn as the finished
   outermost level, exactly fills the framing box (92% × 84% of the viewport),
-  centred. Even level n's screen height at λ is `hRef · e^((n − λ)·P/2)` (P = ln of
-  the zoom per period), so one unit of λ is "one level". The finished number is a
+  centred. Even level n's screen height at λ is `hRef · e^(lhe(n) − lhe(λ))`, where
+  `lhe` is the even levels' log-height (`(n/2)·P` for an exact notation, P = ln of
+  the zoom per period), so one unit of λ is "one level". A settling notation's
+  early finished levels differ in shape, so they stop at `lamEnd(N)`, slightly off N. The finished number is a
   row (towers, brackets) or — where rows are far wider than the screen, as for
   arrows and chains — a column (`top: 'V'`); for a column `hRef` is scaled so λ = N
   still frames it, and the camera's reference level steps down to an odd top.
