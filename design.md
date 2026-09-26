@@ -1,13 +1,17 @@
 # mathzoom — design
 
 Four zooms, each through a self-similar typeset formula for an unimaginably
-large number, and a hub page linking them in order of power. Inspired by
-`D:\pics\misc\math.gif` and `math3.gif`. Each zoom starts on the end of its
-formula and accelerates geometrically for ever — through a blur, a stroboscope
-and pure flicker — until the viewer clicks. Then the number gets its outermost
-level, the next one up that can be shown whole, and the zoom stops there on the
-finished number. Everything on screen is TeX's own typesetting (Computer Modern
-outlines), drawn as vectors, so it stays sharp at every scale.
+large number, and a hub page linking them in order of power. Inspired by two
+images, `math.gif` and `math3.gif` (not in the repository). Each zoom starts on
+the end of its formula and accelerates geometrically for ever — through a blur,
+a stroboscope and pure flicker — until the viewer clicks. Then the number gets
+its outermost level, the next one up that can be shown whole, and the zoom stops
+there on the finished number. Everything on screen is TeX's own typesetting
+(Computer Modern outlines), drawn as vectors, so it stays sharp at every scale.
+
+Live at https://inhahe.github.io/mathzoom/: GitHub Pages serves the repository's
+`master` branch as it is. There is no build step, and the pages work the same
+from disk (`file://`).
 
 ## Files
 
@@ -30,6 +34,7 @@ outlines), drawn as vectors, so it stays sharp at every scale.
 | `dev/harness.js` | Runs a page's scripts in Node on a fake canvas (layout/camera/motion/LOD checks). |
 | `dev/run-chrome.ps1` | One headless-Chrome run of a page: benchmark title or screenshot. |
 | `ROADMAP.md` | The four numbers and what could come after. |
+| `.nojekyll` | Empty; tells GitHub Pages to serve the files as they are instead of running them through Jekyll. |
 
 ## The four notations
 
@@ -163,7 +168,7 @@ where the zoom stops to frame it.
 
 ```
 cd tex
-tectonic -X compile glyphs.tex              # -> glyphs.pdf  (Tectonic: D:\utils\tectonic.exe)
+tectonic -X compile glyphs.tex              # -> glyphs.pdf  (Tectonic: tectonic-typesetting.github.io)
 python glyphs.py glyphs.pdf ../glyphs.json  # -> ../glyphs.json, ../glyphs.js  (PyMuPDF)
 python braces.py                            # -> ../braces.json, ../braces.js  (reads ../glyphs.json)
 python metrics.py                           # -> ../metrics.json, ../metrics.js

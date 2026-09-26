@@ -15,8 +15,9 @@ Each starts on the end of its formula and speeds up geometrically without limit
 level where the whole, finished number fits. Every glyph is TeX's own
 typesetting, drawn as vectors.
 
-**Open `index.html` in a browser** (double-click works; no server needed) and
-pick one.
+**Watch it online at https://inhahe.github.io/mathzoom/** and pick one, or open
+`index.html` from a copy of this repository in a browser (double-click works; no
+server needed).
 
 - **Click** to end it; once it has stopped, click again to start over.
 - **Space** pauses, **R** restarts.
