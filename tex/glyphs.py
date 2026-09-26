@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 import pymupdf
 
 NAMES = [
-    "tower", "two", "cdots", "vdots",
+    "tower", "seed", "cdots", "vdots",
     "rbrace20", "rbrace40", "rbrace80", "rbrace160",
     "ubrace30", "ubrace60", "ubrace120", "ubrace240",
 ]

@@ -1,39 +1,55 @@
 # mathzoom — design
 
-An infinite, accelerating zoom-out through a self-similar typeset formula for an
-unimaginably large number, inspired by `D:\pics\misc\math.gif` and `math3.gif`.
-Everything on screen is TeX's own typesetting (Computer Modern outlines), drawn
-as vectors, so it stays sharp at every scale.
+A zoom out through a self-similar typeset formula for an unimaginably large
+number, inspired by `D:\pics\misc\math.gif` and `math3.gif`. It starts on the end
+of the formula and accelerates geometrically for ever — through a blur, a
+stroboscope and pure flicker — until the viewer clicks. Then the number gets its
+outermost level: the zoom slows down just as it sped up and settles on the whole,
+finished number. Everything on screen is TeX's own typesetting (Computer Modern
+outlines), drawn as vectors, so it stays sharp at every scale.
 
 ## Files
 
 | File | Role |
 |---|---|
-| `index.html` | The page: layout, camera, renderer, main loop. Opens straight from disk (`file://`). |
-| `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (tower, seed `2`, `⋯`, `⋮`, sample braces). |
+| `index.html` | The page: layout, camera, motion, renderer, main loop. Opens straight from disk (`file://`). |
+| `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (tower, seed `10`, `⋯`, `⋮`, sample braces). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |
 | `tex/glyphs.tex` | Typesets every glyph, one tightly cropped page each. |
 | `tex/glyphs.pdf` | Its output; committed so Tectonic is only needed to change the glyphs. |
 | `tex/glyphs.py` | PDF → outline paths (`glyphs.json` + `glyphs.js`). |
 | `tex/braces.py` | Splits the tallest/widest braces into pieces (`braces.json` + `braces.js`). |
 | `preview.html` | Dev aid: draws every glyph large with its measured ink box. |
-| `dev/harness.js` | Runs the page's script in Node on a fake canvas (layout/camera/LOD checks). |
+| `dev/harness.js` | Runs the page's script in Node on a fake canvas (layout/camera/motion/LOD checks). |
 | `dev/run-chrome.ps1` | One headless-Chrome run: benchmark title or screenshot. |
 
 ## The formula
 
 The notation (from the user's hand-made images) builds huge numbers by nesting:
 
-- **Tower** — `2^{2^{⋰^{2}}}`: a power tower of 2s. Level 0, the base glyph.
+- **Tower** — `10^{10^{⋰^{10}}}`: a power tower of 10s. Level 0, the base glyph.
 - **V-level** (vertical column): children stacked top to bottom, each followed by an
   underbrace; `⋮` between the 2nd and last child; the last underbrace is labelled
-  with the seed `2`. Reading: each child's height is the value of the child below
-  it, and the bottom one is seeded with 2.
-- **H-level** (horizontal row): `c } c } ⋯ } c } 2` — children joined by right braces,
-  `⋯ }` between the 2nd and last, seeded with `2` after the last brace.
+  with the seed `10`. Reading: each child's height is the value of the child below
+  it, and the bottom one is seeded with 10.
+- **H-level** (horizontal row): `c } c } ⋯ } c } 10` — children joined by right
+  braces, `⋯ }` between the 2nd and last, seeded with `10` after the last brace.
 
 Levels alternate: tower → V → H → V → H → … Every level shows three explicit
 children (first, second, last) plus an ellipsis standing for the rest.
+
+**Why 10s.** The first version used 2s (as in `math.gif`). But every bracket's
+picture already shows more than two of what it counts — a tower draws at least
+four 10s, a column three children and a `⋮` — so a count of 2 contradicts its own
+picture. 10 is the smallest tidy number that doesn't, and using it for the tower's
+entries as well keeps the whole thing one uniform number. (`math3.gif` uses 100.)
+
+**Every bracket has a single numeral on its far side** — each level's last brace
+is seeded with `10`. That is why the finished number ends the same way: its
+outermost level is just another level (a row, like every even level), with `10`
+after its last brace. (`math3.gif` instead ends its top row with a small chain of
+towers; that would be the one bracket in the number with a sub-formula on its far
+side, so it was deliberately not copied.)
 
 ## Exact self-similarity (the "two images" question)
 
@@ -46,21 +62,20 @@ out exactly it becomes:
   with every tower replaced by a level-2 row filling the same box, and in general
   level n+2 is level n under that substitution. The "starting image" and the
   "recursive image" therefore have the *same layout*; they differ only in what sits
-  at the very bottom: towers. Each period shrinks those by 6.1064×, so they fade out
+  at the very bottom: towers. Each period shrinks those by 6.1081×, so they fade out
   within a few periods.
 - So there is no swap between two pictures. The page composes the recursion itself
   from vector glyphs; two levels further out, the picture is an exact scaled copy
-  (×6.1064) of the current one, apart from the vanishing towers.
+  (×6.1081) of the current one, apart from the vanishing towers.
 
 **Why it is exact — equal growth.** A V-level is `3 + Dv` child-heights tall; an
 H-level is `3 + Dh` child-widths wide, where `Dv`, `Dh` are its decorations (braces,
 kerns, dots, seed) in the same units — both proportional to the font. Over one
 period the aspect ratio is multiplied by `(3 + Dh) / (3 + Dv)`. With TeX's spacing
-the decorations differ (53.98 pt of them across a row vs 50.87 pt down a column),
-and the first version drifted
-3.1% per period for ever (level aspect 0.182 at level 1, 0.471 at level 63 — never
-converging). The H-levels' font is therefore scaled by `H_SCALE = Dv / Dh`
-(0.94234 at the defaults, measured at start-up from trial levels so it follows
+the decorations differ (57.30 pt of them across a row vs 50.89 pt down a column),
+so the picture would drift for ever and never repeat — the first version did,
+3.1% per period. The H-levels' font is therefore scaled by `H_SCALE = Dv / Dh`
+(0.88817 at the defaults, measured at start-up from trial levels so it follows
 `?font` / `?label`). Then `a₂ = a₀` to within 2·10⁻¹⁶ and every level repeats
 with period 2 from the start.
 
@@ -75,10 +90,10 @@ with period 2 from the start.
   each straight run with one rectangle ("spine", tucked `OV` = 0.6 pt under the
   pieces), so the page can build a brace of any length at any font size.
 - **One font scale per level**: `f = font × min(child width, child height)`
-  (× `H_SCALE` on H-levels). `font = 1/16.375` makes level 1 exactly TeX's natural
-  10 pt setting around a natural-size tower; each level's type then suits what it
-  encloses. Spacing: TeX's 3 pt `\underbrace` kern; 1.5 pt / 3 pt around right
-  braces; the seed at 0.7 f (script style).
+  (× `H_SCALE` on H-levels). `font = 1 / tower height` makes level 1 exactly TeX's
+  natural 10 pt setting around a natural-size tower; each level's type then suits
+  what it encloses. Spacing: TeX's 3 pt `\underbrace` kern; 1.5 pt / 3 pt around
+  right braces; the seed at 0.7 f (script style).
 - A level `Z²` larger has pieces `Z²` larger and spines `Z²` longer — an exact
   scaled copy, which is what the self-similarity above needs.
 
@@ -94,25 +109,90 @@ python braces.py                            # -> ../braces.json, ../braces.js (r
 `glyphs.py` measures each glyph's true ink box by rasterising at 24× and re-bases
 its paths to it. `braces.py` identifies pieces structurally (the repeated bar is
 the most frequent path; rules are the stroked parts) and fails loudly if TeX's
-brace construction ever differs from what it expects.
+brace construction ever differs from what it expects. Glyphs are looked up by
+name (`tower`, `seed`, …), so changing the numeral only touches `glyphs.tex`.
 
-## Rendering
+## Camera
 
 - Each level's layout is stored **normalised** (level height = 1): children
-  `{x, y, s}` and decorations as O(1) numbers, so nothing overflows however deep
-  the zoom goes. `LEVELS[0..64]` is built at start-up; beyond that `par(n)` reuses
-  level 63 or 64 by parity (the layout is periodic anyway — the table is long only
-  so the zoom centre below has converged).
+  `{x, y, s}` and decorations as O(1) numbers. `LEVELS[0..64]` is built at
+  start-up; beyond that `par(n)` reuses level 63 or 64 by parity (the table is
+  long only so the zoom centre below has converged).
 - **Zoom centre** `C[n]`: the point in the *last* child at every level (next to the
   seed — "the end of the formula"); at level 1 it is the centre of the last tower,
   its underbrace and the seed. It converges geometrically (≈ 1/6.1 per period).
-- **Camera in log space**: `(K, h)` = a reference level and its screen height.
-  `LH[n]` is the log-height of level n and `PERIOD_LOG = ln 6.1064` one period;
-  an H-level is no taller than its children (height growth exactly 1), so levels
-  are chosen by log-height, never by assuming growth per level.
-- **Frame**: find the smallest level whose box covers the viewport, draw it
+  Until the ending it sits at screen position `(cx, cy)`.
+- **Position = the framed level λ.** At λ = N (N even) the row that is level N
+  exactly fills the framing box (92% × 84% of the viewport), centred. Even level
+  n's screen height at λ is `hFit · e^((n − λ)·PERIOD_LOG/2)`, so one unit of λ is
+  a zoom of √6.1081 ≈ 2.47× — "one level". The HUD shows λ; the start (the last
+  tower + underbrace + seed filling 70% of the height) is λ ≈ 0.95.
+- **Wrapping.** From λ = 100 up, nothing below level ~70 is ever visible, and the
+  layout repeats every 2 levels, so λ and the top level are shifted down by an even
+  amount. Level indices stay small however deep the zoom (10⁸² levels is fine).
+- **Top level.** Before the click there is none (the formula continues upward for
+  ever). After it, level N has nothing above it: the covering-level search stops
+  there and the space around it is white.
+- **Frame**: find the smallest level (≤ top) whose box covers the viewport, draw it
   recursively, culling nodes that are off-screen or under `MIN_PX` (0.8 px) and
   decorations under `MIN_DECO`.
+
+## Motion
+
+**Before the click:** speed `v(t) = v0 · grow^t` levels/s, for ever; distance
+`P(t) = v0 (grow^t − 1) / ln grow`, λ = λ_start + P. Defaults `v0 = 0.12`,
+`grow = 1.10`/s. At 60 Hz:
+
+| t | speed | what it looks like |
+|---|---|---|
+| 0–60 s | 0.12 → 37 levels/s | a smooth, accelerating zoom |
+| ~65 s | 1/2 period per frame | motion becomes ambiguous: the stroboscope starts |
+| ~72 s | 1 period per frame | first moment it appears to stand still |
+| 72–120 s | 1 → 100 periods/frame | still / backward / forward beats, ever faster |
+| 120 s + | | flicker: each frame an unrelated phase |
+
+**Virtual clock.** Time advances by whole display frames of a steady length (the
+median of the last 61 frame intervals), not by the wall clock, whose jitter would
+scramble the beats: at 100 periods/frame, 0.1 ms of jitter is 0.6 of a period. A
+frame that took several intervals advances several; a hidden tab (no frames) just
+pauses.
+
+**Precision.** Distance and speed are kept as logarithms, so nothing overflows
+however long it runs. Beyond 10¹² levels a double can't pin the phase within a
+period, but the picture is pure flicker long before that, so each frame then
+shows a random phase — indistinguishable from the exact one.
+
+**The ending (after the click).** The number gets its top level N: an even level
+(a row), about as far above as we have already come, so the slow-down mirrors the
+speed-up. The remaining distance R then falls to 0 under the speed law
+`speed = k(R)·(R + R0)`:
+
+- `k = ln(decel)` (default `ln grow`) while R ≤ 10⁶: geometric decay — the mirror
+  image of the acceleration, beats and all in reverse — with `R0 = v0/k`, so it is
+  back to the starting speed v0 when this part ends. N is chosen so this law's
+  speed at the click equals the current speed exactly (by adjusting R0 upward by
+  < 2 levels).
+- Above 10⁶ levels the picture is flicker, so there `k` grows as (R/10⁶)²: however
+  fast we were going, that part is over in ≤ 5 s instead of mirroring hours of
+  waiting. So the ending takes about as long as the zoom did, but never more than
+  ~2.5 minutes.
+- Below R = 0.5 the speed tapers as √R (constant deceleration) to a dead stop at
+  R = 0, where level N is framed exactly.
+- Over the last 2 levels the zoom centre drifts from `(cx, cy)` to wherever
+  centring the top level puts it: the right end of the number (its last `} 10`)
+  and its bottom come into view, and it settles in the middle of the screen.
+- An early click (while it is still slow) can require going further than that law
+  allows from the current speed; then N is the smallest row that contains
+  everything on screen, and the speed eases into the law over 1.2 s.
+- Examples (1600×900): click at 20 s (level 8.2) → N = 14, done ~14 s later;
+  click at 90 s → N = 13,376, done ~85 s later; click at 300 s (level 3.3·10¹²)
+  or at 2000 s (level 7.7·10⁸²) → done ~2.5 min later.
+
+The finished picture is the same for every large N (the layout is periodic and
+the towers are far below a pixel); only the number of levels differs.
+
+## Rendering performance
+
 - **Level-of-detail bitmaps**: a node smaller than `CACHE_PX` (96 CSS px) is drawn
   as one bitmap instead of recursing into its thousands of near-sub-pixel
   descendants. Bitmaps are rendered by the same vector code at the next
@@ -127,31 +207,29 @@ brace construction ever differs from what it expects.
 - Setting a canvas's size clears it, so the canvas is resized only immediately
   before a redraw (checked every frame, including devicePixelRatio changes).
 
-## Zoom speed
-
-Speed in levels per second grows geometrically, `v(t) = v0 · grow^t`, capped at
-`vmax`. Defaults: `v0 = 0.12`, `grow = 1.10`/s, `vmax = 1.6` — slow enough at first
-to read the end of the formula, reaching the cap after ~27 s (around level 16.5).
-At the cap one period (×6.1) passes every 1.25 s, ≈ ×4.25 zoom per second. The cap
-exists because past it a self-similar picture changes too much between frames and
-just strobes; `?vmax=` raises it.
-
 ## Controls and URL parameters
 
-- Click: pause / resume. `R`: restart. The corner shows the current level.
-- `?font=` (default 1/16.375), `?label=` (0.7): type size, seed size.
-- `?v0=`, `?grow=`, `?vmax=`: zoom speed (above).
+- **Click**: end it — the zoom slows down onto the finished number. Once it has
+  settled, click again to start over. **Space** / `P`: pause. **R**: restart.
+  The corner shows the level; at the end, how many levels the number has.
+- `?font=` (default 1 / tower height), `?label=` (0.7): type size, seed size.
+- `?v0=` (0.12), `?grow=` (1.10): speed before the click. `?decel=` (= grow):
+  the slow-down rate after it.
 - `?cx=`, `?cy=` (0.62, 0.60): where on screen the zoom centre sits.
-- `?t=N`: freeze at time N (testing); `?t=N&bench`: time 60 renders of that frame,
-  result in the page title. In these test modes errors also go to the title.
+- `?t=N` (testing): show time N; with `&click=C`, as if clicked at time C.
+  `&bench`: time 60 renders of that frame, result in the page title. In these test
+  modes errors also go to the title.
 
 ## Testing
 
-- `node dev/harness.js <t> [w h] [--levels] [--iter N]` — runs the page's script
-  against a recording fake canvas: camera level, node/fill/bitmap counts, cache
-  reuse, and with `--levels` every level's aspect ratio (must repeat with period 2).
-- `dev\run-chrome.ps1 -Query "t=30&bench"` or `-Shot out.png` — one headless-Chrome
-  run with a throwaway profile and a PID-scoped timeout.
+- `node dev/harness.js <t> [--click C] [--size WxH] [--levels] [--iter N]` — runs
+  the page's script against a recording fake canvas: camera, HUD, node/fill/bitmap
+  counts, cache reuse, and with `--levels` every level's aspect ratio (must repeat
+  with period 2). `--trace a:b:s` (with `--click`) prints the camera and HUD over
+  time — how the examples above were measured.
+- `dev\run-chrome.ps1 -Query "t=40&click=20"` with `-Shot out.png`, or
+  `-Query "t=30&bench"` — one headless-Chrome run with a throwaway profile and a
+  PID-scoped timeout.
 - The `?t=` mode draws with `setTimeout`, not `requestAnimationFrame`: headless
   Chrome under `--virtual-time-budget` does not reliably deliver animation frames.
   Its virtual clock also only advances while the page is idle, so on a heavily

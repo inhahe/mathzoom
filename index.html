@@ -18,8 +18,14 @@
 <script src="braces.js"></script>
 <script>
 "use strict";
+// An ever-accelerating zoom out of a self-similar formula for a huge number. It
+// starts on the end of the formula (the last power tower, its underbrace and the
+// seed 10) and speeds up geometrically for ever — until a click. Then the number
+// gets its outermost level: the zoom slows down just as it sped up and settles
+// on the whole, finished number.
+
 // ============================================================================
-// Settings. All overridable from the URL, e.g. ?font=0.07&vmax=2&t=12
+// Settings. All overridable from the URL, e.g. ?v0=0.3&grow=1.2
 // ============================================================================
 const Q = new URLSearchParams(location.search);
 // In the test modes (?t= / ?bench) surface any error in the title, where a
@@ -27,25 +33,30 @@ const Q = new URLSearchParams(location.search);
 if (Q.has('t') || Q.has('bench'))
   window.onerror = (msg, src, line, col) => { document.title = `ERROR ${msg} @${line}:${col}`; };
 const num = (k, d) => (Q.has(k) ? parseFloat(Q.get(k)) : d);
+
+// Glyphs and braces: TeX outlines from tex/glyphs.py and tex/braces.py.
+const G = window.GLYPHS, B = window.BRACES;
+const TOWER = G.tower, SEED = G.seed, CDOTS = G.cdots, VDOTS = G.vdots;
+
 const CFG = {
   // Each level is typeset at one "font size" f, proportional to its children's
-  // short side. 1/16.375 makes level 1 exactly TeX's own 10pt setting around a
-  // natural-size tower (the tower is 16.375pt tall).
-  font: num('font', 1 / 16.375),
-  label: num('label', 0.7),        // seed "2" relative to f (TeX \scriptstyle)
-  // Zoom speed in levels per second: starts slow, grows geometrically, capped.
-  v0: num('v0', 0.12),             // initial speed
-  grow: num('grow', 1.10),         // multiplier per second
-  vmax: num('vmax', 1.6),          // cap: faster than this a self-similar image just strobes
-  cx: num('cx', 0.62), cy: num('cy', 0.60),     // screen position of the zoom centre
-  t: Q.has('t') ? parseFloat(Q.get('t')) : null, // freeze at this time (testing)
+  // short side. The default makes level 1 exactly TeX's own 10pt setting around
+  // a natural-size tower.
+  font: num('font', 1 / TOWER.h),
+  label: num('label', 0.7),        // the seed 10 relative to f (TeX \scriptstyle)
+  // Speed in levels per second: v0 * grow^t, for ever, until the click; then it
+  // falls geometrically again at `decel` per second (default: mirror the rise).
+  v0: num('v0', 0.12),
+  grow: num('grow', 1.10),
+  decel: num('decel', num('grow', 1.10)),
+  cx: num('cx', 0.62), cy: num('cy', 0.60),       // screen position of the zoom centre
+  t: Q.has('t') ? parseFloat(Q.get('t')) : null,              // test: freeze at time t
+  click: Q.has('click') ? parseFloat(Q.get('click')) : null,  // test: clicked at this time
 };
 
 // ============================================================================
-// Glyphs and braces (TeX outlines from tex/glyphs.py and tex/braces.py)
+// Drawing glyphs and braces
 // ============================================================================
-const G = window.GLYPHS, B = window.BRACES;
-const TOWER = G.tower, TWO = G.two, CDOTS = G.cdots, VDOTS = G.vdots;
 const pcache = new Map();
 const path = d => { let p = pcache.get(d); if (!p) pcache.set(d, p = new Path2D(d)); return p; };
 let ctx, DPR = 1;
@@ -130,7 +141,7 @@ function buildLevel(kind, ca) {
     decos.push({ t: 'g', g: VDOTS, x: center(VDOTS.w * f), y, s: f }); y += VDOTS.h * f + k3;
     const last = kids.length; child(); brace();
     y += k3;
-    decos.push({ t: 'g', g: TWO, x: center(TWO.w * lf), y, s: lf }); y += TWO.h * lf;
+    decos.push({ t: 'g', g: SEED, x: center(SEED.w * lf), y, s: lf }); y += SEED.h * lf;
     return finish(cw, y, kids, decos, last);
   }
   const gA = 1.5 * f, gB = 3 * f;
@@ -145,7 +156,7 @@ function buildLevel(kind, ca) {
   brace(); x += gB;
   const last = kids.length; child(); brace();
   x += gA;
-  decos.push({ t: 'g', g: TWO, x, y: mid(TWO.h * lf), s: lf }); x += TWO.w * lf;
+  decos.push({ t: 'g', g: SEED, x, y: mid(SEED.h * lf), s: lf }); x += SEED.w * lf;
   return finish(x, ch, kids, decos, last);
 }
 function finish(W, H, kids, decos, last) {
@@ -191,7 +202,7 @@ const lvl = n => LEVELS[par(n)];
 
 // Zoom centre. It lives in the LAST child at every level (next to the seed —
 // the end of the formula). C[n] is its position in level n's normalised box.
-// Level 1 fixes it: centre of the last tower + its underbrace + the seed "2".
+// Level 1 fixes it: centre of the last tower + its underbrace + the seed.
 const C = [];
 {
   const L1 = LEVELS[1], lk = L1.kids[L1.last];
@@ -204,18 +215,12 @@ const C = [];
 const cen = n => C[par(n)];
 // Height ratio level n / level n-1. For an H-level this is exactly 1 (its
 // children sit side by side, so it is no taller than they are — it grows only in
-// width). Hence the camera works in log space and never assumes growth per level.
+// width). For a V-level it is the same for every V-level: e^PERIOD_LOG.
 const grow = n => 1 / lvl(n).kids[lvl(n).last].s;
-
-// LH[n] = ln(height of level n / height of level 1), in log space so it never
-// overflows. Past NMAX it rises by PERIOD_LOG every 2 levels.
-const LH = [0, 0];
-for (let n = 2; n <= NMAX; n++) LH[n] = LH[n - 1] + Math.log(grow(n));
-const PERIOD_LOG = LH[NMAX] - LH[NMAX - 2];      // ln(Z^2): one self-similar period
-const lhOf = n => (n <= NMAX ? LH[n] : LH[par(n)] + ((n - par(n)) / 2) * PERIOD_LOG);
+const PERIOD_LOG = Math.log(grow(3));            // ln(zoom per period of 2 levels)
 
 // ============================================================================
-// Drawing
+// Drawing levels
 // ============================================================================
 let VW = 0, VH = 0, drawn = 0;
 const MIN_PX = 0.8;                              // stop recursing below this size
@@ -232,7 +237,7 @@ const MIN_DECO = 0.35;                           // skip decorations smaller tha
 // >= LOD_LEVEL, so two bitmap families serve the whole infinite tail; each
 // earlier level gets its own.
 const CACHE_PX = 96;                             // CSS px; nodes this big stay vectors
-const LOD_LEVEL = 10;                            // towers are 6.1^-5 of the node here
+const LOD_LEVEL = 10;                            // towers are 6^-5 of the node here
 const lodKey = n => (n < LOD_LEVEL ? n : LOD_LEVEL + ((n - LOD_LEVEL) % 2));
 const caches = new Map();
 let building = false;
@@ -280,68 +285,258 @@ function drawLevel(n, X, Y, H) {
   if (n > 0) for (const k of L.kids) drawLevel(n - 1, X + k.x * H, Y + k.y * H, k.s * H);
 }
 
-// Camera: reference level K and its screen height h, set by setView(). The zoom
-// centre maps to screen point (px,py).
-const cam = { K: 1, h: 0 };
+// ============================================================================
+// Camera
+// ============================================================================
+// A position along the zoom is a "framed level" λ: at λ = N (N even) the row that
+// is level N exactly fills the framing box, centred. Every even level has the
+// tower's proportions, and even level n's screen height at λ is
+//   hFit · e^((n − λ)·PERIOD_LOG/2)
+// so one unit of λ is a zoom of e^(PERIOD_LOG/2): "one level".
+const A_EVEN = LEVELS[0].a;
+const FIT_W = 0.92, FIT_H = 0.84;                // framing box, fraction of the viewport
+const hFit = () => Math.min(VH * FIT_H, VW * FIT_W / A_EVEN);
+// The start: level 1's last tower, its underbrace and the seed fill 70% of the
+// screen height. That fixes level 1's height — and level 2's, which is no taller.
+function lamStart() {
+  const L1 = LEVELS[1], lk = L1.kids[L1.last];
+  const h2 = VH * 0.7 / (1 - lk.y);
+  return 2 - 2 * Math.log(h2 / hFit()) / PERIOD_LOG;
+}
+// The layout repeats every 2 levels, and from level LAM_W up nothing below level
+// ~LAM_W−30 is ever visible, so there only λ mod 2 matters: positions are shifted
+// down by an even amount to keep every index small. Returns [λ', shift].
+const LAM_W = 100;
+function wrap(lam) {
+  if (lam < LAM_W) return [lam, 0];
+  const s = 2 * Math.floor((lam - LAM_W) / 2);
+  return [lam - s, s];
+}
 
+// The camera: reference level K (even) and its screen height h; the zoom
+// centre's screen position (px, py); and the top level, above which there is
+// nothing (Infinity until the click). All level numbers here are wrapped.
+const cam = { K: 2, h: 1, px: 0, py: 0, top: Infinity, root: 2 };
+function setCamera(lam, top, px, py) {
+  cam.K = Math.max(2, 2 * Math.ceil(lam / 2));
+  cam.h = hFit() * Math.exp((cam.K - lam) * PERIOD_LOG / 2);
+  cam.px = px; cam.py = py; cam.top = top;
+}
+// The smallest level (at most the top) whose box covers the viewport; everything
+// visible lies inside it.
+function coverLevel() {
+  let n = cam.K, h = cam.h;
+  for (let i = 0; i < 400 && n < cam.top; i++) {
+    const c = cen(n), a = lvl(n).a;
+    const X = cam.px - c.x * h, Y = cam.py - c.y * h;
+    if (X <= 0 && Y <= 0 && X + a * h >= VW && Y + h >= VH) break;
+    n++; h *= grow(n);
+  }
+  return [n, h];
+}
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = '#000';
-  ctx.strokeStyle = '#000';
+  ctx.fillStyle = ctx.strokeStyle = '#000';
   ctx.lineCap = 'butt';                          // TeX rules have square ends
-  const px = VW * CFG.cx, py = VH * CFG.cy;
-  // Walk up from K to the smallest level whose box covers the whole viewport;
-  // everything visible lies inside it.
-  let n = cam.K, h = cam.h;
-  for (let i = 0; i < 400; i++) {
-    const c = cen(n), a = lvl(n).a;
-    const X = px - c.x * h, Y = py - c.y * h;
-    if (X <= 0 && Y <= 0 && X + a * h >= VW && Y + h >= VH) break;
-    n++; h *= grow(n);
-  }
+  const [n, h] = coverLevel();
+  cam.root = n;
   const c = cen(n);
   drawn = 0;
-  drawLevel(n, px - c.x * h, py - c.y * h, h);
+  drawLevel(n, cam.px - c.x * h, cam.py - c.y * h, h);
 }
 
 // ============================================================================
-// Time -> zoom. Speed v(t) = v0 * grow^t levels/sec, capped at vmax.
+// Motion
 // ============================================================================
-function levelsAt(t) {
-  const { v0, grow: g, vmax } = CFG;
-  const lg = Math.log(g);
-  const tCap = Math.log(vmax / v0) / lg;         // when v reaches vmax
-  if (t <= tCap) return v0 * (Math.pow(g, t) - 1) / lg;
-  return v0 * (Math.pow(g, tCap) - 1) / lg + vmax * (t - tCap);
-}
+const LG = Math.log(Math.max(1.0001, CFG.grow));
+const K0 = Math.log(Math.max(1.0001, CFG.decel));
+const lnExpm1 = x => (x > 30 ? x + Math.log1p(-Math.exp(-x)) : Math.log(Math.expm1(x)));
+const logAdd = (a, b) => Math.max(a, b) + Math.log1p(Math.exp(-Math.abs(a - b)));
+// Beyond this many levels a double no longer pins the phase within a period. The
+// picture is pure flicker long before that, so from there each frame just shows a
+// random phase — which is what any exact phase would look like anyway.
+const EXACT = 1e12, LN_EXACT = Math.log(EXACT);
+const mod2 = x => x - 2 * Math.floor(x / 2);
 
-let start0 = null;
-function setView(t) {
-  // Start: level 1 sized so the end of the formula (last tower + its underbrace
-  // + the seed "2") fills ~70% of the screen height.
-  const L1 = LEVELS[1], lk = L1.kids[L1.last];
-  const lnStart = Math.log((VH * 0.7) / (1 - lk.y));
-  // Total zoom-out so far in natural-log units. One self-similar period (2
-  // levels) is PERIOD_LOG, so one "level" of speed is half of that.
-  const L = levelsAt(t) * PERIOD_LOG / 2;
-  // ln(screen height of level K) = lnStart - L + lhOf(K). Pick the smallest K
-  // whose height is at least half the viewport — entirely in log space.
-  const target = Math.log(VH * 0.5) - lnStart + L;   // need lhOf(K) >= target
-  let K;
-  if (target <= LH[NMAX]) {
-    K = 1;
-    while (K < NMAX && LH[K] < target) K++;
+// ---- Before the click --------------------------------------------------------
+// Speed v0·grow^t levels/s; distance P(t) = v0·(grow^t − 1)/ln grow. Both in log
+// form, so however long it runs nothing overflows.
+const lnSpeed = t => Math.log(CFG.v0) + t * LG;
+const lnDist = t => Math.log(CFG.v0 / LG) + lnExpm1(Math.max(t, 1e-12) * LG);
+
+// ---- The ending --------------------------------------------------------------
+// At the click the number gets its outermost level N — a row, like every even
+// level — about as far above us as we have already come. The remaining distance
+// R then falls to 0 under the speed law
+//     speed = k(R)·(R + R0)
+// k = ln(decel) while R <= R_FAST: geometric decay — the mirror image of the
+//   speed-up — with R0 = v0/k, so that it is back to the starting speed v0 at the
+//   end of it.
+// Above R_FAST the picture is pure flicker, so there k grows as (R/R_FAST)^2:
+//   whatever the speed, that part is over in ~5 s instead of mirroring hours.
+// Below R_STOP the speed tapers as √R (constant deceleration) to a dead stop at
+// R = 0, where level N is framed exactly. Over the last R_PAN levels the zoom
+// centre drifts from (cx, cy) to wherever that framing puts it.
+const R_FAST = 1e6, FAST_POW = 2, R_STOP = 0.5, R_PAN = 2, D_MIN = 1.5, T_BLEND = 1.2;
+const R0 = CFG.v0 / K0;
+let mode = 'zoom';                // 'zoom' → click → 'ending' → 'done'
+let clock = 0;                    // virtual seconds of zooming
+let E = null;                     // the ending's state
+
+function startEnding() {
+  updateView();                   // where we are now, and the level drawn as root
+  const [root] = coverLevel();
+  const lnv = lnSpeed(clock), v = Math.exp(lnv), lp = lnDist(clock);
+  // The law's natural distance for our speed.
+  let lnD;
+  if (v <= K0 * (R_FAST + R0)) lnD = Math.log(Math.max(1e-9, v / K0 - R0));
+  else lnD = (lnv - Math.log(K0) + FAST_POW * Math.log(R_FAST)) / (FAST_POW + 1);
+  const e = { v, r0: R0, tau: 0, blend: false, stopping: false, R: 0, N: Infinity };
+  if (lp < LN_EXACT && lnD < LN_EXACT) {
+    // Exact: choose the even top level N and continue at exactly our speed.
+    const lamC = lamStart() + Math.exp(lp), D = Math.exp(lnD);
+    const [, shift] = wrap(lamC);
+    let N = 2 * Math.floor((lamC + D) / 2);                // so R0' >= R0 below
+    const lo = 2 * Math.ceil(Math.max(lamC + D_MIN, root + shift) / 2);
+    if (N < lo) N = lo;                                    // early click: must go further
+    e.N = N; e.R = N - lamC;
+    if (e.R <= R_FAST) {
+      e.r0 = v / K0 - e.R;                                 // speed continuity
+      if (e.r0 < R0) { e.r0 = R0; e.blend = true; }        // too slow to get there: ease in
+    }
+    e.lnN = Math.log(N);
   } else {
-    const m = NMAX - 1;                              // a V-level inside the table
-    K = m + 2 * Math.ceil((target - LH[m]) / PERIOD_LOG);
-    while (K > 1 && lhOf(K - 1) >= target) K--;
+    // Astronomical: the picture is flicker, and N's exact value can't matter —
+    // only that it is even.
+    e.R = Infinity;
+    e.lnN = logAdd(lp, lnD);                               // distance come + to go
   }
-  cam.K = K;
-  cam.h = Math.exp(lnStart - L + lhOf(K));
+  e.D0 = e.R === Infinity ? Infinity : e.R;
+  e.w = e.R === Infinity ? lnD : Math.log(e.R + e.r0);    // ln(R + R0'), the state above R_STOP
+  if (e.R !== Infinity && e.R < R_STOP) { e.stopping = true; }
+  E = e;
+  mode = 'ending';
+  paused = false;                 // a click while paused means "show me the end"
 }
 
+// Remaining distance in levels (Infinity while it is too large to be exact).
+function remaining() {
+  if (E.stopping) return E.R;
+  if (E.w > LN_EXACT) return Infinity;
+  return Math.max(0, Math.exp(E.w) - E.r0);
+}
+
+function stepEnding(dt) {
+  const e = E;
+  const lnFast = Math.log(R_FAST), wStop = Math.log(R_STOP + e.r0);
+  const v1 = K0 * (R_STOP + e.r0);               // speed where the taper begins
+  while (dt > 1e-12 && mode === 'ending') {
+    if (e.blend && e.tau < T_BLEND) {
+      // Early click: ease from our speed into the law (small numbers only).
+      const h = Math.min(dt, 1 / 240, T_BLEND - e.tau);
+      const x = e.tau / T_BLEND, b = x * x * (3 - 2 * x);
+      const R = remaining();
+      const law = e.stopping ? v1 * Math.sqrt(R / R_STOP) : K0 * (R + e.r0);
+      let Rn = R - (b * law + (1 - b) * e.v) * h;
+      e.tau += h; dt -= h;
+      if (Rn <= 0) { finishEnding(); return; }
+      if (Rn < R_STOP) { e.stopping = true; e.R = Rn; }
+      else e.w = Math.log(Rn + e.r0);
+      continue;
+    }
+    if (e.stopping) {                            // √R taper: √R falls linearly
+      const s = Math.sqrt(e.R) - v1 * dt / (2 * Math.sqrt(R_STOP));
+      e.tau += dt; dt = 0;
+      if (s <= 0) { finishEnding(); return; }
+      e.R = s * s;
+      continue;
+    }
+    if (e.w > lnFast) {                          // flicker: e^(-p(w - lnFast)) grows linearly
+      const u = e.w - lnFast, p = FAST_POW;
+      const q = Math.exp(-p * u);
+      const need = (1 - q) / (p * K0);           // time to get down to R_FAST
+      if (dt < need) { e.w = lnFast - Math.log(q + p * K0 * dt) / p; e.tau += dt; dt = 0; }
+      else { e.w = lnFast; e.tau += need; dt -= need; }       // exactly on the boundary,
+      continue;                                               // so the next pass is geometric
+    }
+    const need = (e.w - wStop) / K0;             // geometric: w falls linearly
+    if (dt < need) { e.w -= K0 * dt; e.tau += dt; dt = 0; }
+    else { e.stopping = true; e.R = R_STOP; e.tau += need; dt -= need; }
+  }
+}
+function finishEnding() { E.R = 0; E.stopping = true; mode = 'done'; dirty = true; }
+
+// ---- The view for the current state --------------------------------------------
+// Sets the camera and returns the level on show for the HUD, as { v } when it is
+// an ordinary number or { ln } (its natural log) when it is astronomical.
+const smootherstep = x => x * x * x * (x * (6 * x - 15) + 10);
+function updateView() {
+  const px0 = VW * CFG.cx, py0 = VH * CFG.cy;
+  if (mode === 'zoom') {
+    const lp = lnDist(clock);
+    if (lp >= LN_EXACT) {
+      setCamera(LAM_W + 2 * Math.random(), Infinity, px0, py0);
+      return { ln: lp };
+    }
+    const lam = lamStart() + Math.exp(lp);
+    setCamera(wrap(lam)[0], Infinity, px0, py0);
+    return { v: lam };
+  }
+  const R = remaining();
+  if (R === Infinity) {                          // still in the flicker
+    setCamera(LAM_W + 2 * Math.random(), Infinity, px0, py0);
+    return { ln: E.lnN };
+  }
+  // Where the top level is, relative to us, and the level on show.
+  let lamW, topW, shown;
+  if (E.N !== Infinity) {
+    const lam = E.N - R, [lw, s] = wrap(lam);
+    lamW = lw; topW = E.N - s; shown = { v: lam };
+    if (E.N >= 1e6) shown = { ln: Math.log(lam) };
+  } else {                                       // N astronomical: only its parity counts
+    lamW = LAM_W + mod2(-R);
+    topW = LAM_W + 2 * Math.round((R + lamW - LAM_W) / 2);
+    shown = { ln: E.lnN };
+  }
+  // Drift the zoom centre to where centring the top level puts it.
+  let px = px0, py = py0;
+  const span = Math.min(R_PAN, E.D0);
+  if (R < span) {
+    const w = smootherstep(1 - R / span), ct = cen(topW), hf = hFit();
+    px += w * (VW / 2 + (ct.x - A_EVEN / 2) * hf - px0);
+    py += w * (VH / 2 + (ct.y - 0.5) * hf - py0);
+  }
+  setCamera(lamW, topW, px, py);
+  return shown;
+}
+
+// ============================================================================
+// Head-up display
+// ============================================================================
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+function fmt(shown, whole) {
+  if (shown.v !== undefined && Math.abs(shown.v) < 1e6)
+    return whole ? Math.round(shown.v).toLocaleString('en-US') : shown.v.toFixed(2);
+  const ln = shown.ln !== undefined ? shown.ln : Math.log(shown.v);
+  const e10 = ln / Math.LN10, ex = Math.floor(e10);
+  let m = Math.pow(10, e10 - ex);
+  let mant = m.toFixed(2);
+  if (mant === '10.00') { mant = '1.00'; return `${mant}×10${String(ex + 1).replace(/\d/g, d => SUP[d])}`; }
+  return `${mant}×10${String(ex).replace(/\d/g, d => SUP[d])}`;
+}
+function hud(shown) {
+  let s;
+  if (mode === 'done') s = `level ${fmt(shown, true)} — the whole number · click to start again`;
+  else s = `level ${fmt(shown, false)}` + (paused ? ' · paused (space)' : '') +
+           (mode === 'zoom' && clock < 8 ? ' · click to end it' : '');
+  document.getElementById('hud').textContent = s;
+}
+
+// ============================================================================
+// Main loop
+// ============================================================================
 // Setting a canvas's size clears it, so this is only ever called right before a
 // redraw (never from a bare 'resize' event, which would blank the picture until
 // the next frame).
@@ -355,59 +550,91 @@ function resize() {
 const sizeChanged = () =>
   innerWidth !== VW || innerHeight !== VH || (window.devicePixelRatio || 1) !== DPR;
 
-// ============================================================================
-// Main loop
-// ============================================================================
-let paused = false, tPaused = 0, tOffset = 0;
-const elapsed = () => (performance.now() - start0) / 1000;
+function advance(dt) {
+  if (mode === 'zoom') clock += dt;
+  else if (mode === 'ending') stepEnding(dt);
+}
+function restart() { mode = 'zoom'; clock = 0; E = null; paused = false; dirty = true; }
+
+// Time runs on a virtual clock that advances by whole display frames of a steady
+// length (the median frame interval), not by the jittery wall clock. At speeds of
+// thousands of levels per second the picture is a stroboscope, and only exactly
+// even steps make it settle into the clean still / backward / forward beats.
+// A frame that took several intervals advances several; a hidden tab, whose
+// frames stop, simply pauses.
+let paused = false, lastNow = null, Tref = 1 / 60;
+let dirty = true;                 // redraw even though nothing is moving
+const deltas = [];
 function frame(now) {
   requestAnimationFrame(frame);
   // The viewport can still be 0x0 when the page first loads, and a 0-height view
   // makes log(VH) = -Infinity. Track the live size every frame and skip frames
   // until there is something to draw into.
-  if (sizeChanged()) resize();
+  if (sizeChanged()) { resize(); dirty = true; }
   if (VW < 2 || VH < 2) return;
-  if (start0 === null) start0 = now;
-  const t = paused ? tPaused : elapsed() - tOffset;
-  setView(Math.max(0, t));
+  const moving = !paused && mode !== 'done';
+  if (lastNow !== null) {
+    const d = (now - lastNow) / 1000;
+    if (d > 0 && d < 0.25) {
+      deltas.push(d);
+      if (deltas.length > 61) deltas.shift();
+      if (deltas.length >= 5) Tref = [...deltas].sort((a, b) => a - b)[deltas.length >> 1];
+    }
+    if (moving) advance(Math.min(4, Math.max(1, Math.round(d / Tref))) * Tref);
+  }
+  lastNow = now;
+  // A still picture (paused, or the finished number) is drawn once, not 60 times
+  // a second — and a paused flicker frame stays put instead of re-rolling.
+  if (!moving && !dirty) return;
+  dirty = false;
+  const shown = updateView();
   render();
-  hud(t);
+  hud(shown);
 }
-// ?t=N: draw the frozen frame at time N (testing), again whenever the window is
-// resized. Polls with setTimeout, not requestAnimationFrame: a headless browser
-// running under a virtual-time budget does not reliably deliver animation
-// frames, but it does run timers.
+
+// ?t=N (&click=C): draw the state at virtual time N — clicked at time C if given —
+// and redraw it whenever the window is resized (testing). Polls with setTimeout,
+// not requestAnimationFrame: a headless browser running under a virtual-time
+// budget does not reliably deliver animation frames, but it does run timers.
+function simulate(t, click) {
+  restart();
+  if (click === null || t <= click) { clock = Math.max(0, t); return; }
+  clock = Math.max(0, click);
+  startEnding();
+  let left = t - clock;
+  while (left > 1e-12 && mode === 'ending') {
+    const s = Math.min(1 / 60, left);
+    advance(s); left -= s;
+  }
+}
 let benched = false;
 function still() {
   if (innerWidth < 2 || innerHeight < 2) { setTimeout(still, 20); return; }
   if (sizeChanged()) resize();
-  setView(Math.max(0, CFG.t));
+  simulate(CFG.t, CFG.click);
+  const shown = updateView();
   render();
-  hud(CFG.t);
-  if (Q.has('bench') && !benched) { benched = true; bench(CFG.t); }
+  hud(shown);
+  if (Q.has('bench') && !benched) { benched = true; bench(); }
 }
 // ?t=N&bench: time repeated renders of that frame; the result goes in the title.
-function bench(t) {
+function bench() {
   const N = 60, t0 = performance.now();
-  for (let i = 0; i < N; i++) { setView(t); render(); }
+  for (let i = 0; i < N; i++) { updateView(); render(); }
   const ms = (performance.now() - t0) / N;
   document.title = `BENCH ${ms.toFixed(2)} ms/frame, ${drawn} nodes, ${VW}x${VH}`;
-}
-function hud(t) {
-  document.getElementById('hud').textContent = paused
-    ? 'paused — click to resume · R to restart'
-    : `level ${(1 + levelsAt(Math.max(0, t))).toFixed(2)}`;
 }
 
 window.addEventListener('load', () => {
   ctx = document.getElementById('c').getContext('2d');
   document.getElementById('c').addEventListener('click', () => {
-    if (start0 === null) return;
-    if (paused) { tOffset = elapsed() - tPaused; paused = false; }   // resume where we stopped
-    else { tPaused = elapsed() - tOffset; paused = true; }
+    if (VW < 2 || VH < 2) return;
+    if (mode === 'zoom') startEnding();
+    else if (mode === 'done') restart();
   });
   addEventListener('keydown', e => {
-    if (e.key === 'r' || e.key === 'R') { start0 = null; tOffset = 0; paused = false; }
+    if (e.key === 'r' || e.key === 'R') restart();
+    else if (e.key === ' ' || e.key === 'p' || e.key === 'P') { paused = !paused; dirty = true; e.preventDefault(); }
   });
   if (CFG.t !== null) { still(); addEventListener('resize', still); }
   else requestAnimationFrame(frame);
