@@ -1,6 +1,6 @@
 # mathzoom
 
-Four endless, accelerating zoom-outs, each through a self-similar formula for an
+Five endless, accelerating zoom-outs, each through a self-similar formula for an
 unimaginably large number, and a hub page that links them in order of power:
 
 1. **Towers** (`towers.html`) — power towers of 10s, stacked with braces.
@@ -9,6 +9,8 @@ unimaginably large number, and a hub page that links them in order of power:
 3. **Chains** (`chains.html`) — Conway's chained arrows, nested.
 4. **Brackets** (`brackets.html`) — brackets that fold whatever is inside them,
    climbing toward ε₀; the page opens with a key.
+5. **Subscripts** (`subscripts.html`) — brackets whose subscripts say what kind
+   of fold they are (Veblen's hierarchy), climbing toward Γ₀; also with a key.
 
 Each starts on the end of its formula and speeds up geometrically without limit
 (into a stroboscope, then flicker) until you click; then it stops at the next

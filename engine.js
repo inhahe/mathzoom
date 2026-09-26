@@ -13,7 +13,12 @@
 //             spans — the arrow run, as in Graham's diagram. Default: all of it.
 //   top       'H' (the finished number is a row) or 'V' (a column)
 //   label     the seed's size relative to the level's type (default 0.7)
+//   sub       optional, brackets only: every bracket also carries a subscript,
+//             a copy of the level below at this scale, hung off its closing
+//             bracket; it says what kind of fold the bracket is (Veblen's
+//             hierarchy: see design.md)
 //   key       optional glyph shown at the start: what the notation means
+//   keySize   the key's height as a fraction of the screen's (default 0.2)
 //   cx, cy    optional default screen position of the zoom centre
 //   settle    let the proportions settle over the first levels instead of
 //             forcing level 2 into the base's exact shape (see "Exact
@@ -37,6 +42,7 @@ const num = (k, d) => (Q.has(k) ? parseFloat(Q.get(k)) : d);
 const G = window.GLYPHS, B = window.BRACES, M = window.METRICS;
 const BASE = NOTE.base, SEED = G.seed, CDOTS = G.cdots, VDOTS = G.vdots;
 const BRACKETS = NOTE.grammar === 'brackets';
+const SUB = BRACKETS && NOTE.sub ? NOTE.sub : 0;  // a subscript's scale, or none
 const TOP_ODD = NOTE.top === 'V';
 const SETTLE = !!NOTE.settle;
 
@@ -228,6 +234,14 @@ function braceLevel(kind, ca, { outer = false, span = null } = {}) {
 // bracket turned). Every copy is drawn — no ellipsis — so the finished picture
 // is exact. The outermost level is followed by the seed: the picture applied
 // to 10.
+//
+// With NOTE.sub every bracket also has a subscript: a fourth copy of the level
+// below, SUB times the size of the other three. A row's hangs at its lower right,
+// bottom-aligned with the brackets (as in `]_x`); a column's is centred under its
+// bottom bracket. Either way it adds to the level only along the direction the
+// level grows in — a row stays exactly as tall as its children, a column exactly
+// as wide — so equal growth still works as below, the subscript counting as SUB
+// of a copy on both sides. The zoom centre stays in the last full-size copy.
 function bracketLevel(kind, ca, { outer = false } = {}) {
   const cw = ca, ch = 1;
   const kids = [], decos = [];
@@ -241,6 +255,7 @@ function bracketLevel(kind, ca, { outer = false } = {}) {
     child(); y += g2; child(); y += g2;
     const last = kids.length; child(); y += g1;
     decos.push({ id: 'close', t: 'b', side: 'B', x: 0, y, len: cw, f }); y += bd;
+    if (SUB) { y += g1; kids.push({ x: cw * (1 - SUB) / 2, y, s: SUB * ch }); y += SUB * ch; }
     return finish(cw, y, kids, decos, last);
   }
   let x = 0;
@@ -249,6 +264,7 @@ function bracketLevel(kind, ca, { outer = false } = {}) {
   child(); x += g2 + PAD / 2; child(); x += g2 + PAD / 2;
   const last = kids.length; child(); x += g1;
   decos.push({ id: 'close', t: 'b', side: 'R', x, y: 0, len: ch, f }); x += bd;
+  if (SUB) { x += g1; kids.push({ x, y: ch * (1 - SUB), s: SUB * ch }); x += SUB * cw; }
   const sf = f * CFG.label;
   if (outer) {
     x += g2;
@@ -298,8 +314,10 @@ let HS = 1, PAD = 0;
 const K_V = (() => { const v = buildLevel('V', BASE.w / BASE.h); return 1 / v.kids[v.last].s; })();
 if (!SETTLE) {
   const a1 = BASE.w / BASE.h / K_V;              // a column's aspect ratio
-  const d1 = buildLevel('H', a1).a - 3 * a1;     // a row's decorations, as is
-  const dt = (K_V - 3) * a1;                     // what equal growth needs
+  const n = 3 + SUB;                             // copies per level (a subscript is SUB
+                                                 // of one — a copy, not type: HS can't shrink it)
+  const d1 = buildLevel('H', a1).a - n * a1;     // a row's decorations, as is
+  const dt = (K_V - n) * a1;                     // what equal growth needs
   if (d1 > dt) HS = dt / d1; else PAD = dt - d1;
 }
 
@@ -570,7 +588,7 @@ function drawKey() {
   const a = keyAlpha();
   if (a <= 0) return;
   const K = NOTE.key, pad = 14;
-  const s = Math.min(VH * 0.2 / K.h, VW * 0.42 / K.w);
+  const s = Math.min(VH * (NOTE.keySize || 0.2) / K.h, VW * 0.42 / K.w);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.globalAlpha = a;
   ctx.fillStyle = '#fff';

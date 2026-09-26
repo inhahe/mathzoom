@@ -37,6 +37,7 @@ function makeCtx(canvas, screen) {
     canvas,
     setTransform(a, b, c, d, e, f) { cur = [a, b, c, d, e, f]; },
     transform() {}, translate() {}, fillRect: rec, fill: rec, stroke: rec,
+    strokeRect() {},                             // the key's frame
     drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh) { if (screen) images.push(Math.max(dw, dh)); },
     set fillStyle(v) {}, get fillStyle() { return '#000'; },
     set strokeStyle(v) {}, get strokeStyle() { return '#000'; },

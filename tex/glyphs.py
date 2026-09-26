@@ -23,7 +23,7 @@ NAMES = [
     "tower", "seed", "cdots", "vdots",
     "rbrace20", "rbrace40", "rbrace80", "rbrace160",
     "ubrace30", "ubrace60", "ubrace120", "ubrace240",
-    "arrows", "chain", "pair", "key", "lbrack160",
+    "arrows", "chain", "pair", "key", "lbrack160", "subkey",
 ]
 
 SVGNS = "{http://www.w3.org/2000/svg}"

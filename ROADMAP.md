@@ -1,7 +1,7 @@
 # mathzoom — roadmap
 
-Four zooms, each a whole tier stronger than the last, and a hub page that links
-them in order of power. All four share one engine: the TeX glyph pipeline,
+Five zooms, each a whole tier stronger than the last, and a hub page that links
+them in order of power. All five share one engine: the TeX glyph pipeline,
 extensible delimiters, the self-similar alternating layout (columns / rows),
 the λ camera with wrapping, level-of-detail bitmaps, the accelerating zoom and
 the click-to-finish ending.
@@ -16,7 +16,8 @@ of ω, ω^ω, ω^ω^ω, …. N is the number of levels in the finished number.
 | 2 | `arrows.html` | Knuth arrows, braces — Graham's diagram, nested | ω + N: beats Graham's number | anyone who has seen Graham's number |
 | 3 | `chains.html` | Conway chains 10→10→⋯→10, braces | ω² + N: beats any Conway chain one could write out | people who follow big numbers |
 | 4 | `brackets.html` | nested brackets (Cantor normal form, as in the Kirby–Paris hydra), with a key | a tower of ω's N high, climbing toward ε₀ | logicians; everyone else via the key |
-| — | `index.html` | hub: the four in order of power | | |
+| 5 | `subscripts.html` | brackets with subscripts (Veblen's φ), with a key | subscripts nested N deep, climbing toward Γ₀ | logicians; everyone else via the key |
+| — | `index.html` | hub: the five in order of power | | |
 
 ## 1. Towers — done
 
@@ -84,11 +85,27 @@ versions are kept as `arrows-exact.html` / `chains-exact.html`.
 
 ## Hub — done
 
-`index.html`: the four pages in order, each with a picture of a finished
+`index.html`: the five pages in order, each with a picture of a finished
 number, its rung, and what it beats, so the step up in power reads left to
 right.
 
+## 5. Subscripts — done
+
+- **Meaning:** every bracket may carry a subscript, itself a bracket picture,
+  saying what kind of fold it is: `[X]_K` is Veblen's φ_K(X). No subscript is
+  a plain bracket; `[ ]_[ ]` is ε₀ (ten plain brackets nested, at 10); each `[ ]`
+  added to a subscript nests the kind below it ten deep; a subscript can hold
+  folds and subscripts of its own.
+- **Picture:** as brackets, a bracket around three copies of the level below,
+  plus a fourth copy at 0.45 size as its subscript — at a row's lower right, or
+  centred under a column. The subscripts nest one deeper every level.
+- **Key:** the brackets key plus `[ ]_[ ] 10 = [[⋯[ ]⋯]] 10` and
+  `[ ]_[ ][ ] 10 = [⋯[ ]_[ ]⋯]_[ ] 10` (ten nested each).
+- **Size:** level 1 is already ε₃, past everything the brackets reach; N levels
+  climb toward Γ₀, the limit of predicative mathematics.
+
 ## Later
 
-- **Past ε₀:** a new kind of bracket that folds the nesting itself (Veblen-style),
-  the road toward TREE(3)'s neighbourhood.
+- **Past Γ₀:** brackets with several subscripts (Veblen's functions of more
+  arguments: φ(1,0,0) = Γ₀, then φ(1,0,1), φ(2,0,0), …), heading for the small
+  Veblen ordinal, TREE(3)'s neighbourhood.

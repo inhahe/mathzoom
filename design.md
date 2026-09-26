@@ -1,6 +1,6 @@
 # mathzoom — design
 
-Four zooms, each through a self-similar typeset formula for an unimaginably
+Five zooms, each through a self-similar typeset formula for an unimaginably
 large number, and a hub page linking them in order of power. Inspired by two
 images, `math.gif` and `math3.gif` (not in the repository). Each zoom starts on
 the end of its formula and accelerates geometrically for ever — through a blur,
@@ -17,12 +17,12 @@ from disk (`file://`).
 
 | File | Role |
 |---|---|
-| `index.html` | The hub: the four zooms in order of power, each with a live picture of a finished number (its page embedded frozen, `?t=30&click=0&embed`), its rung and what it beats. |
-| `towers.html`, `arrows.html`, `chains.html`, `brackets.html` | The four zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). Arrows and chains *settle* (see *Exact self-similarity*). |
+| `index.html` | The hub: the five zooms in order of power, each with a live picture of a finished number (its page embedded frozen, `?t=30&click=0&embed`), its rung and what it beats. |
+| `towers.html`, `arrows.html`, `chains.html`, `brackets.html`, `subscripts.html` | The five zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). Arrows and chains *settle* (see *Exact self-similarity*). |
 | `arrows-exact.html`, `chains-exact.html` | The first versions of arrows and chains, forced into their base's exact shape (wide gaps around the rows' `⋯`; the finished number is a column). Kept, and linked from the hub's footer. |
 | `folding.md` | A two-page note: an ascent through the fast-growing hierarchy by iterated folding (to Buchholz's ψ₀(ε_(Ω_ω+1))), defining one large number. |
 | `engine.js` | The engine: layout grammars, exact self-similarity, drawing, level-of-detail bitmaps, camera, motion, the ending, HUD, main loop, test modes. |
-| `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets key). |
+| `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets and subscripts keys). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |
 | `metrics.js` / `metrics.json` | Generated: the arrow run's span in `10↑↑⋯↑10`; TeX's square-bracket proportions. |
 | `tex/glyphs.tex` | Typesets every glyph, one tightly cropped page each. |
@@ -33,10 +33,10 @@ from disk (`file://`).
 | `preview.html` | Dev aid: draws every glyph large with its measured ink box. |
 | `dev/harness.js` | Runs a page's scripts in Node on a fake canvas (layout/camera/motion/LOD checks). |
 | `dev/run-chrome.ps1` | One headless-Chrome run of a page: benchmark title or screenshot. |
-| `ROADMAP.md` | The four numbers and what could come after. |
+| `ROADMAP.md` | The five numbers and what could come after. |
 | `.nojekyll` | Empty; tells GitHub Pages to serve the files as they are instead of running them through Jekyll. |
 
-## The four notations
+## The five notations
 
 "Rung" is the position on the step/fold ladder — the fast-growing hierarchy: a
 step repeats the operation before it; a fold, ω, jumps to "as many steps as the
@@ -78,6 +78,25 @@ standard, so its page opens with a key in standard notation instead of words:
 `[ ] 10 = 10↑10`, `[ ][ ] 10 = 10↑↑10`, `[[ ]] 10 = 10↑↑⋯↑10` (ten arrows); it fades
 out after ~10 s.
 
+**Subscripts** (`'brackets'` with `sub: 0.45`; `subscripts.html`) give every
+bracket a subscript, a bracket picture saying what kind of fold the bracket is:
+Veblen's hierarchy drawn in brackets, `[X]_K` = φ_K(X). No subscript is an
+ordinary bracket, φ₀(X) = ω^X. `[ ]_[ ]` = φ₁(0) = ε₀, whose x-th approximation is x
+plain brackets nested; each `[ ]` added to a subscript nests the kind below it x
+deep (`[ ]_[ ][ ]` = ζ₀, x nested `]_[ ]` brackets); and a subscript can be any
+picture, with folds and subscripts of its own (`[ ]_[[ ]]` = φ_ω(0),
+`[ ]_([ ]_[ ])` = φ_ε₀(0)). Fundamental sequences are Veblen's standard ones with
+[0] = 0 (ε₀[x+1] = ω^ε₀[x], ζ₀[x+1] = ε_ζ₀[x], …), which is what the key shows at
+x = 10. Each level is a bracket around three copies of the level below, as on
+the brackets page, and its subscript is a fourth copy at 0.45 the size, hung at
+a row's lower right (bottom-aligned, as in `]_x`) or centred under a column's
+bottom bracket: level n+1 = φ_{L_n}(L_n·3). So the subscripts nest one deeper
+every level, and N levels climb toward Γ₀, the first ordinal φ can't reach from
+below (φ_Γ₀(0) = Γ₀): Feferman and Schütte's limit of predicative mathematics.
+Level 1 is already ε₃, past every brackets picture. The key is the brackets key
+plus `[ ]_[ ] 10 = [[⋯[ ]⋯]] 10` and `[ ]_[ ][ ] 10 = [⋯[ ]_[ ]⋯]_[ ] 10`, ten nested
+each; it is twice as tall, so it gets `keySize: 0.36` of the screen (default 0.2).
+
 **Why 10s.** Every bracket's picture shows more than two of what it counts (a
 tower draws at least four 10s, a column three children and a `⋮`), so a count of
 2 would contradict its own picture; 10 is the smallest tidy number that doesn't.
@@ -101,7 +120,8 @@ for ever — worked out exactly:
   base replaced by a level-2 row filling the same box, and level n+2 is level n
   under that substitution. The starting image and the recursive image have the
   same layout; they differ only in the bases at the very bottom, which shrink
-  away (×6.1 per period for towers, ×8.8 arrows, ×10.9 chains, ×3.8 brackets).
+  away (×6.1 per period for towers, ×8.8 arrows, ×10.9 chains, ×3.8 brackets,
+  ×4.3 subscripts).
 - There is no swap between pictures: the recursion is composed live from vector
   glyphs, and two levels further out the picture is an exact scaled copy.
 
@@ -116,6 +136,15 @@ around the row's `⋯` (arrows 2.89, chains 8.43 column-heights — the ellipsis
 region reads naturally as "many more columns here"). Measured at start-up from
 trial levels built from the base's actual proportions. Then `a₂ = a₀` to within
 a few 10⁻¹⁶ and every level repeats with period 2 from the start.
+
+**Subscripts keep it exact.** A subscript adds to its level only along the
+direction the level grows: a row's is bottom-aligned inside the row's height, so
+the row stays exactly as tall as its children; a column's is narrower than the
+column and centred under it, so the column stays exactly as wide. So a level
+holds `3 + SUB` copies' worth along its length, in both kinds, and equal growth
+balances the rest as before (the subscript is a copy, not type, so `HS` doesn't
+touch it). Both kinds gain the same 1.5 f gap before the subscript, so `HS` comes
+out 0.485, exactly as for brackets.
 
 **Why towers fit and arrows/chains need filler.** The stuff between a column's
 entries (underbraces, kerns, `⋮`, seed: ~51 pt) is sized by the type, not the
@@ -160,7 +189,8 @@ where the zoom stops to frame it.
   own font TeX's pieces would overlap into a squat bar — which short, wide columns
   (arrows, chains) would cause — so a row's font is capped there (`BRACE_MIN`).
   Spacing: TeX's 3 pt `\underbrace` kern; 1.5 pt / 3 pt around right braces and
-  brackets; the seed at 0.7 f (script style; brackets: full size).
+  brackets, 1.5 pt before a subscript; the seed at 0.7 f (script style; brackets
+  and subscripts: full size).
 - A level `Z²` larger has pieces `Z²` larger and spines `Z²` longer — an exact
   scaled copy, which is what the self-similarity above needs.
 
@@ -190,7 +220,8 @@ the pieces of a tall `\left[`.
   table is long only so the zoom centre has converged).
 - **Zoom centre** `C[n]`: the point in the *last* child at every level (next to the
   seed — "the end of the formula"; for brackets, the head the hydra's rule
-  chops first). At level 1 it is the middle of the last base and everything below
+  chops first; with subscripts, the last full-size copy, not the subscript).
+  At level 1 it is the middle of the last base and everything below
   it, centred on the base (or its braced span). It converges geometrically.
   Until the ending it sits at screen position `(cx, cy)`.
 - **Position = the framed level λ.** At λ = N level N, drawn as the finished
@@ -268,7 +299,7 @@ the bases are far below a pixel); only the number of levels differs.
   periodic and the bases are invisibly small there.
   Effect: the tail went from ~3300 nodes / ~55 ms per frame to ~20–50 nodes /
   2–4 ms, worst run 6.5 ms (headless Chrome, software rendering, on a fully
-  loaded CPU).
+  loaded CPU). Subscripts, with four copies per level, run 3–11 ms.
 - Setting a canvas's size clears it, so the canvas is resized only immediately
   before a redraw (checked every frame, including devicePixelRatio changes).
 - Still pictures (paused, finished) are drawn once instead of every frame.

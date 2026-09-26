@@ -40,4 +40,14 @@
 \end{array}\end{gl}
 % 17 a tall square bracket, only measured (stem, serif) by metrics.py
 \begin{gl}\left[\vphantom{\rule{0pt}{160pt}}\right.\end{gl}
+% 18 subscripts page key: the brackets key, then what a subscript means — a
+%    bracket with subscript [ ] is ten plain brackets nested; adding a [ ] to
+%    the subscript nests the kind below it ten deep
+\begin{gl}\begin{array}{r@{\;=\;}l}
+[\,]\;10 & 10\uparrow10\\[5pt]
+[\,][\,]\;10 & 10\uparrow\uparrow10\\[5pt]
+[[\,]]\;10 & 10\underbrace{\uparrow\uparrow\cdots\uparrow}_{10}10\\[5pt]
+[\,]_{[\,]}\;10 & \underbrace{[[\cdots[}_{10}\,]\cdots]]\;10\\[5pt]
+[\,]_{[\,][\,]}\;10 & \underbrace{[[\cdots[}_{10}\,]_{[\,]}\cdots]_{[\,]}]_{[\,]}\;10
+\end{array}\end{gl}
 \end{document}

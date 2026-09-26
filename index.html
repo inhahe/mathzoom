@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Four infinite numbers</title>
+<title>Five infinite numbers</title>
 <style>
   body { margin: 0; background: #fff; color: #222; font: 16px/1.5 Georgia, 'Times New Roman', serif;
          font-variant-numeric: lining-nums; }
@@ -11,7 +11,7 @@
   h1 { font-weight: normal; font-size: 36px; margin: 0 0 8px; }
   .lede { color: #555; max-width: 62em; margin: 0 0 12px; }
   .rungs { color: #777; font-size: 14px; max-width: 70em; margin: 0 0 40px; }
-  /* The four side by side, weakest on the left, all the same height. */
+  /* The five side by side, weakest on the left, all the same height. */
   .stairs { display: flex; align-items: stretch; }
   .card { flex: 1 1 0; min-width: 0; display: block; color: inherit; text-decoration: none;
           border: 1px solid #ddd; border-radius: 10px; overflow: hidden; background: #fff;
@@ -24,6 +24,7 @@
   .card .how { color: #666; font-size: 14px; margin: 2px 0 10px; }
   .card .rung { font-size: 22px; margin: 0; }
   .card .beats { color: #444; font-size: 14px; margin: 4px 0 0; }
+  .nw { white-space: nowrap; }
   .sep { flex: 0 0 auto; align-self: center; font-size: 40px; color: #bbb; padding: 0 10px; }
   footer { color: #888; font-size: 14px; margin-top: 44px; }
   footer a { color: inherit; }
@@ -35,15 +36,15 @@
 </head>
 <body>
 <main>
-  <h1>Four infinite numbers</h1>
+  <h1>Five infinite numbers</h1>
   <p class="lede">Each page starts on the end of a formula for a huge number and zooms out for
   ever, faster and faster, until you click — then the formula gets its outermost level and you
   are looking at one whole, finished number. Left to right, each way of writing it is a whole
   tier more powerful than the one before.</p>
   <p class="rungs">The rungs count steps and folds. A step repeats the operation before it (+, ×,
   ^, ↑↑, …); a fold, ω, jumps to “as many steps as the number itself”; ω² folds the folds; ε₀ is
-  where ω, ω<sup>ω</sup>, ω<sup>ω<sup>ω</sup></sup>, … is heading. N is how many levels deep your
-  finished number is — you choose it by when you click.</p>
+  where ω, ω<sup>ω</sup>, ω<sup>ω<sup>ω</sup></sup>, … is heading, and Γ₀ is where subscripts inside
+  subscripts inside subscripts are heading. N is how many levels deep your finished number is — you choose it by when you click.</p>
 
   <div class="stairs">
     <a class="card" href="towers.html">
@@ -83,6 +84,16 @@
         <p class="how">brackets that fold whatever is inside them</p>
         <p class="rung">rung ω<sup>ω<sup>⋰<sup>ω</sup></sup></sup> (N high)</p>
         <p class="beats">climbs toward ε₀ — past everything the other three can reach</p>
+      </div>
+    </a>
+    <span class="sep" aria-hidden="true">≪</span>
+    <a class="card" href="subscripts.html">
+      <iframe src="subscripts.html?t=30&amp;click=0&amp;embed" loading="lazy" tabindex="-1" title="subscripts"></iframe>
+      <div class="txt">
+        <h2>Subscripts</h2>
+        <p class="how">brackets whose subscripts say what kind of fold they are (Veblen’s hierarchy)</p>
+        <p class="rung">rung φ<sub>φ<sub>⋱</sub></sub> <span class="nw">(N deep)</span></p>
+        <p class="beats">climbs toward Γ₀ — past everything the brackets reach, whenever you click</p>
       </div>
     </a>
   </div>
