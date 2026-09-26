@@ -74,13 +74,13 @@ level adds one Knuth arrow: a finished number of N levels is ≥ 10 ↑^(N+2) 4.
 - **New:** square brackets drawn from TeX's own proportions (stem and serifs,
   any length, four orientations), the bracket grammar, the key.
 
-## Trial: settling arrows and chains — for review
+## Settling arrows and chains — done
 
-`arrows2.html`, `chains2.html`: instead of forcing each row into the base's exact
-shape (which leaves a big empty stretch around the rows' `⋯`), the proportions
-settle within a few levels into the towers-like shape rows 2.16 : 1 — natural
-braces, no filler; the finished number is a row. If preferred, they replace
-`arrows.html` / `chains.html` on the hub.
+Instead of forcing each row into the base's exact shape (which leaves a big
+empty stretch around the rows' `⋯`), the proportions settle within a few levels
+into the towers-like shape rows 2.16 : 1 — natural braces, no filler; the
+finished number is a row. Adopted as `arrows.html` / `chains.html`; the first
+versions are kept as `arrows-exact.html` / `chains-exact.html`.
 
 ## Hub — done
 

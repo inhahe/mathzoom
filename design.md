@@ -14,8 +14,9 @@ outlines), drawn as vectors, so it stays sharp at every scale.
 | File | Role |
 |---|---|
 | `index.html` | The hub: the four zooms in order of power, each with a live picture of a finished number (its page embedded frozen, `?t=30&click=0&embed`), its rung and what it beats. |
-| `towers.html`, `arrows.html`, `chains.html`, `brackets.html` | The four zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). |
-| `arrows2.html`, `chains2.html` | Trial versions of arrows and chains whose proportions *settle* instead of being forced (see *Exact self-similarity*); not yet linked from the hub. |
+| `towers.html`, `arrows.html`, `chains.html`, `brackets.html` | The four zooms. Each only loads the data and the engine and calls `mathzoom({...})` with its notation. Open straight from disk (`file://`). Arrows and chains *settle* (see *Exact self-similarity*). |
+| `arrows-exact.html`, `chains-exact.html` | The first versions of arrows and chains, forced into their base's exact shape (wide gaps around the rows' `⋯`; the finished number is a column). Kept, and linked from the hub's footer. |
+| `folding.md` | Two pages of English describing a number built by folding the fold itself, rung by rung, as far as notation reaches (from the discussion that led to these pages). |
 | `engine.js` | The engine: layout grammars, exact self-similarity, drawing, level-of-detail bitmaps, camera, motion, the ending, HUD, main loop, test modes. |
 | `glyphs.js` / `glyphs.json` | Generated: TeX glyph outlines (bases, seed `10`, `⋯`, `⋮`, sample braces and brackets, the brackets key). |
 | `braces.js` / `braces.json` | Generated: the pieces TeX builds braces from (see *Typesetting*). |
@@ -119,7 +120,7 @@ equal by the luck of the tower's shape. `10↑↑⋯↑10` (8.8 pt tall) and a c
 (6.5 pt) make columns 8.8× and 10.9× their entries, while a row's braces cover
 only ~1.4 / ~0.8 of a (wide) column: the rest must be filler.
 
-**Settling instead (`settle: true`; `arrows2.html`, `chains2.html`).** Don't force
+**Settling instead (`settle: true`; `arrows.html`, `chains.html`).** Don't force
 level 2 into the base's shape. With the type caps (a row's brace ≥ 44 pt, a
 column's underbrace ≥ 24 pt at its own font), a row's decorations scale with its
 children's height rather than their width, so a row that is too narrow for its
@@ -192,10 +193,11 @@ the pieces of a tall `\left[`.
   centred. Even level n's screen height at λ is `hRef · e^(lhe(n) − lhe(λ))`, where
   `lhe` is the even levels' log-height (`(n/2)·P` for an exact notation, P = ln of
   the zoom per period), so one unit of λ is "one level". A settling notation's
-  early finished levels differ in shape, so they stop at `lamEnd(N)`, slightly off N. The finished number is a
-  row (towers, brackets) or — where rows are far wider than the screen, as for
-  arrows and chains — a column (`top: 'V'`); for a column `hRef` is scaled so λ = N
-  still frames it, and the camera's reference level steps down to an odd top.
+  early finished levels differ in shape, so they stop at `lamEnd(N)`, slightly off N.
+  The finished number is a row, or — where rows are far wider than the screen, as
+  on the exact-shape arrows and chains pages — a column (`top: 'V'`); for a column
+  `hRef` is scaled so λ = N still frames it, and the camera's reference level steps
+  down to an odd top.
   The start frames level 1's last base and everything below it at 70% of the
   height, or 90% of the width for wide bases.
 - **Wrapping.** From λ = 100 up, nothing below level ~70 is ever visible, and the

@@ -23,6 +23,11 @@ pick one.
 - URL parameters tune it, e.g. `towers.html?grow=1.2` (accelerate faster) or
   `towers.html?v0=0.3` (faster start). See `design.md` for all of them.
 
+The first versions of arrows and chains, forced into their base's exact shape,
+are kept as `arrows-exact.html` and `chains-exact.html`.
+
 How it works — the notations, why the zoom is exactly self-similar, the ending,
 the TeX pipeline and the renderer — is in [`design.md`](design.md); what's done
 and what could come next is in [`ROADMAP.md`](ROADMAP.md).
+[`folding.md`](folding.md) climbs further in words: a number built by folding
+the fold itself, as far as notation reaches.

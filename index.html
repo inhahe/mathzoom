@@ -11,15 +11,12 @@
   h1 { font-weight: normal; font-size: 36px; margin: 0 0 8px; }
   .lede { color: #555; max-width: 62em; margin: 0 0 12px; }
   .rungs { color: #777; font-size: 14px; max-width: 70em; margin: 0 0 40px; }
-  /* The four in a rising staircase, weakest on the left. */
-  .stairs { display: flex; align-items: flex-end; }
+  /* The four side by side, weakest on the left, all the same height. */
+  .stairs { display: flex; align-items: stretch; }
   .card { flex: 1 1 0; min-width: 0; display: block; color: inherit; text-decoration: none;
           border: 1px solid #ddd; border-radius: 10px; overflow: hidden; background: #fff;
           transition: box-shadow .15s, transform .15s; }
   .card:hover { box-shadow: 0 8px 28px rgba(0, 0, 0, .13); transform: translateY(-3px); }
-  .card:nth-of-type(2) { margin-bottom: 36px; }
-  .card:nth-of-type(3) { margin-bottom: 72px; }
-  .card:nth-of-type(4) { margin-bottom: 108px; }
   .card iframe { display: block; width: 100%; aspect-ratio: 16 / 10; border: 0;
                  pointer-events: none; background: #fff; }
   .card .txt { padding: 12px 16px 16px; border-top: 1px solid #eee; }
@@ -29,9 +26,9 @@
   .card .beats { color: #444; font-size: 14px; margin: 4px 0 0; }
   .sep { flex: 0 0 auto; align-self: center; font-size: 40px; color: #bbb; padding: 0 10px; }
   footer { color: #888; font-size: 14px; margin-top: 44px; }
+  footer a { color: inherit; }
   @media (max-width: 900px) {
-    .stairs { flex-direction: column; align-items: stretch; }
-    .card { margin-bottom: 0 !important; }
+    .stairs { flex-direction: column; }
     .sep { transform: rotate(90deg); align-self: center; padding: 6px 0; }
   }
 </style>
@@ -91,7 +88,10 @@
   </div>
 
   <footer>On each page: click to finish the number, click again to start over ·
-  space pauses · R restarts. How it all works: design.md.</footer>
+  space pauses · R restarts. How it all works: design.md.<br>
+  Earlier versions of arrows and chains, whose rows are forced into their base's exact
+  shape (with wide gaps to fill): <a href="arrows-exact.html">arrows (exact shape)</a>,
+  <a href="chains-exact.html">chains (exact shape)</a>.</footer>
 </main>
 </body>
 </html>
