@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>An infinite number</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: pointer; }
+  #hud { position: fixed; left: 12px; bottom: 10px; font: 12px/1.4 system-ui, sans-serif;
+         color: #999; user-select: none; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<script src="glyphs.js"></script>
+<script src="braces.js"></script>
+<script>
+"use strict";
+// ============================================================================
+// Settings. All overridable from the URL, e.g. ?font=0.07&vmax=2&t=12
+// ============================================================================
+const Q = new URLSearchParams(location.search);
+// In the test modes (?t= / ?bench) surface any error in the title, where a
+// headless browser's --dump-dom can see it.
+if (Q.has('t') || Q.has('bench'))
+  window.onerror = (msg, src, line, col) => { document.title = `ERROR ${msg} @${line}:${col}`; };
+const num = (k, d) => (Q.has(k) ? parseFloat(Q.get(k)) : d);
+const CFG = {
+  // Each level is typeset at one "font size" f, proportional to its children's
+  // short side. 1/16.375 makes level 1 exactly TeX's own 10pt setting around a
+  // natural-size tower (the tower is 16.375pt tall).
+  font: num('font', 1 / 16.375),
+  label: num('label', 0.7),        // seed "2" relative to f (TeX \scriptstyle)
+  // Zoom speed in levels per second: starts slow, grows geometrically, capped.
+  v0: num('v0', 0.12),             // initial speed
+  grow: num('grow', 1.10),         // multiplier per second
+  vmax: num('vmax', 1.6),          // cap: faster than this a self-similar image just strobes
+  cx: num('cx', 0.62), cy: num('cy', 0.60),     // screen position of the zoom centre
+  t: Q.has('t') ? parseFloat(Q.get('t')) : null, // freeze at this time (testing)
+};
+
+// ============================================================================
+// Glyphs and braces (TeX outlines from tex/glyphs.py and tex/braces.py)
+// ============================================================================
+const G = window.GLYPHS, B = window.BRACES;
+const TOWER = G.tower, TWO = G.two, CDOTS = G.cdots, VDOTS = G.vdots;
+const pcache = new Map();
+const path = d => { let p = pcache.get(d); if (!p) pcache.set(d, p = new Path2D(d)); return p; };
+let ctx, DPR = 1;
+
+// Draw glyph g with its ink box's top-left at screen (x,y), uniformly scaled by s.
+function glyph(g, x, y, s) {
+  for (const pt of g.parts) {
+    const m = pt.m;
+    ctx.setTransform(DPR * s, 0, 0, DPR * s, DPR * x, DPR * y);
+    ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+    if (pt.sw) { ctx.lineWidth = pt.sw; ctx.stroke(path(pt.d)); }
+    else ctx.fill(path(pt.d));
+  }
+}
+
+// ---- Extensible braces, built the way TeX builds them ----------------------
+// Fixed-size curved pieces (TeX's own) at font scale f, joined by a straight
+// spine that stretches to any length. The spine is TeX's rule thickness (1.196pt
+// at 10pt), so stroke weight follows the level's text size. A level Z^2 larger
+// has pieces Z^2 larger AND a spine Z^2 longer — an exact scaled copy.
+function piece(p, x, y, f, dx, dy) {
+  const m = p.m;
+  ctx.setTransform(DPR * f, 0, 0, DPR * f, DPR * x, DPR * y);
+  ctx.translate(dx, dy);
+  ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+  ctx.fill(path(p.d));
+}
+function spine(x, y, f, x0, y0, x1, y1) {
+  if (x1 <= x0 || y1 <= y0) return;             // pieces already touch: no run needed
+  ctx.setTransform(DPR * f, 0, 0, DPR * f, DPR * x, DPR * y);
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+}
+const OV = 0.6;                                  // pt the spine tucks under each piece
+// Right brace: ink top-left at (x,y), height len, font scale f (all screen px).
+function rbrace(x, y, len, f) {
+  const R = B.rbrace, D = len / f - R.L;         // extra length vs the reference brace
+  const [s0, s1] = R.spine;
+  spine(x, y, f, s0, R.topY[1] - OV, s1, R.midY[0] + D / 2 + OV);
+  spine(x, y, f, s0, R.midY[1] + D / 2 - OV, s1, R.botY[0] + D + OV);
+  piece(R.top, x, y, f, 0, 0);
+  piece(R.mid, x, y, f, 0, D / 2);
+  piece(R.bot, x, y, f, 0, D);
+}
+// Underbrace: ink top-left at (x,y), width len, font scale f.
+function ubrace(x, y, len, f) {
+  const U = B.ubrace, D = len / f - U.L;
+  const [s0, s1] = U.spine;
+  spine(x, y, f, U.leftX[1] - OV, s0, U.midX[0] + D / 2 + OV, s1);
+  spine(x, y, f, U.midX[1] + D / 2 - OV, s0, U.rightX[0] + D + OV, s1);
+  piece(U.left, x, y, f, 0, 0);
+  piece(U.midL, x, y, f, D / 2, 0);
+  piece(U.midR, x, y, f, D / 2, 0);
+  piece(U.right, x, y, f, D, 0);
+}
+
+// ============================================================================
+// Layout. Each level is stored NORMALISED: its height is 1 and it has aspect a
+// (width = a). Children are {x,y,s}: top-left (x,y), height s. Decorations are
+// glyphs {t:'g',g,x,y,s} or braces {t:'r'|'u',x,y,len,f}. Normalising every
+// level keeps every number O(1) however deep the zoom goes.
+// ============================================================================
+
+// Build a level from its child's size (aspect ca, height 1), in child units,
+// then normalise. 'V' stacks children with underbraces; 'H' chains them with
+// right braces. Both show first, second, an ellipsis, the last, then the seed.
+function buildLevel(kind, ca) {
+  const cw = ca, ch = 1;
+  const kids = [], decos = [];
+  // This level's font scale: proportional to the child's short side, so level 1
+  // is TeX's natural setting and each level's type suits what it encloses.
+  const f = CFG.font * Math.min(cw, ch) * (kind === 'H' ? H_SCALE : 1);
+  const lf = f * CFG.label;                      // seed label scale
+  if (kind === 'V') {
+    const k3 = 3 * f;                            // TeX's \underbrace kern (3pt)
+    const ubH = B.ubrace.h * f;
+    const center = w => (cw - w) / 2;
+    let y = 0;
+    const child = () => { kids.push({ x: 0, y, s: ch }); y += ch; };
+    const brace = () => { y += k3; decos.push({ t: 'u', x: 0, y, len: cw, f }); y += ubH; };
+    child(); brace(); y += k3;
+    child(); brace(); y += k3;
+    decos.push({ t: 'g', g: VDOTS, x: center(VDOTS.w * f), y, s: f }); y += VDOTS.h * f + k3;
+    const last = kids.length; child(); brace();
+    y += k3;
+    decos.push({ t: 'g', g: TWO, x: center(TWO.w * lf), y, s: lf }); y += TWO.h * lf;
+    return finish(cw, y, kids, decos, last);
+  }
+  const gA = 1.5 * f, gB = 3 * f;
+  const rbW = B.rbrace.w * f;
+  const mid = h => (ch - h) / 2;                 // centre on the brace tip
+  let x = 0;
+  const child = () => { kids.push({ x, y: 0, s: ch }); x += cw; };
+  const brace = () => { x += gA; decos.push({ t: 'r', x, y: 0, len: ch, f }); x += rbW; };
+  child(); brace(); x += gB;
+  child(); brace(); x += gB;
+  decos.push({ t: 'g', g: CDOTS, x, y: mid(CDOTS.h * f), s: f }); x += CDOTS.w * f + gB;
+  brace(); x += gB;
+  const last = kids.length; child(); brace();
+  x += gA;
+  decos.push({ t: 'g', g: TWO, x, y: mid(TWO.h * lf), s: lf }); x += TWO.w * lf;
+  return finish(x, ch, kids, decos, last);
+}
+function finish(W, H, kids, decos, last) {
+  const k = 1 / H;
+  return {
+    a: W / H,
+    kids: kids.map(c => ({ x: c.x * k, y: c.y * k, s: c.s * k })),
+    decos: decos.map(d => d.t === 'g'
+      ? { t: 'g', g: d.g, x: d.x * k, y: d.y * k, s: d.s * k }
+      : { t: d.t, x: d.x * k, y: d.y * k, len: d.len * k, f: d.f * k }),
+    last,
+  };
+}
+
+// ---- Exact self-similarity --------------------------------------------------
+// A V-level is (3 + Dv) child-heights tall; an H-level is (3 + Dh) child-widths
+// wide, Dv and Dh being its decorations (braces, kerns, dots, seed) in the same
+// units. Over two levels the aspect ratio is multiplied by (3 + Dh) / (3 + Dv),
+// so unless Dv == Dh it drifts for ever and the picture never repeats. Scaling
+// the H-levels' font by Dv / Dh makes the two equal; then level 2 has exactly
+// the tower's aspect ratio, level 3 is laid out exactly like level 1, and the
+// whole structure is periodic with period 2 from the very start: every V-level
+// is a scaled copy of level 1 with each tower replaced by a level-2 row that
+// fills the same box. (Measured with trial levels, so it tracks ?font / ?label.)
+let H_SCALE = 1;
+{
+  const v = buildLevel('V', 2), h = buildLevel('H', 0.5);   // wide child, tall child
+  const Dv = 1 / v.kids[v.last].s - 3;           // V: height in child heights, minus 3
+  const Dh = h.a / 0.5 - 3;                      // H: width in child widths, minus 3
+  H_SCALE = Dv / Dh;
+}
+
+// Level 0 is the tower glyph itself. Levels then alternate V, H, V, H, ...
+const LEVELS = [{ a: TOWER.w / TOWER.h, kids: [], last: -1,
+                  decos: [{ t: 'g', g: TOWER, x: 0, y: 0, s: 1 / TOWER.h }] }];
+const NMAX = 64;                                 // zoom centre long converged (design.md)
+for (let n = 1; n <= NMAX; n++) LEVELS.push(buildLevel(n % 2 ? 'V' : 'H', LEVELS[n - 1].a));
+// Beyond NMAX the layout is periodic with period 2: reuse the level of matching
+// parity. (Not `NMAX - ((NMAX - n) % 2)`: JS `%` of a negative number is
+// negative, which yields NMAX+1 and runs off the end of the table.)
+const par = n => (n <= NMAX ? n : ((n - NMAX) % 2 === 0 ? NMAX : NMAX - 1));
+const lvl = n => LEVELS[par(n)];
+
+// Zoom centre. It lives in the LAST child at every level (next to the seed —
+// the end of the formula). C[n] is its position in level n's normalised box.
+// Level 1 fixes it: centre of the last tower + its underbrace + the seed "2".
+const C = [];
+{
+  const L1 = LEVELS[1], lk = L1.kids[L1.last];
+  C[1] = { x: L1.a / 2, y: (lk.y + 1) / 2 };
+  for (let n = 2; n <= NMAX; n++) {
+    const L = LEVELS[n], k = L.kids[L.last];
+    C[n] = { x: k.x + k.s * C[n - 1].x, y: k.y + k.s * C[n - 1].y };
+  }
+}
+const cen = n => C[par(n)];
+// Height ratio level n / level n-1. For an H-level this is exactly 1 (its
+// children sit side by side, so it is no taller than they are — it grows only in
+// width). Hence the camera works in log space and never assumes growth per level.
+const grow = n => 1 / lvl(n).kids[lvl(n).last].s;
+
+// LH[n] = ln(height of level n / height of level 1), in log space so it never
+// overflows. Past NMAX it rises by PERIOD_LOG every 2 levels.
+const LH = [0, 0];
+for (let n = 2; n <= NMAX; n++) LH[n] = LH[n - 1] + Math.log(grow(n));
+const PERIOD_LOG = LH[NMAX] - LH[NMAX - 2];      // ln(Z^2): one self-similar period
+const lhOf = n => (n <= NMAX ? LH[n] : LH[par(n)] + ((n - par(n)) / 2) * PERIOD_LOG);
+
+// ============================================================================
+// Drawing
+// ============================================================================
+let VW = 0, VH = 0, drawn = 0;
+const MIN_PX = 0.8;                              // stop recursing below this size
+const MIN_DECO = 0.35;                           // skip decorations smaller than this
+
+// ---- Level-of-detail cache --------------------------------------------------
+// A node smaller than CACHE_PX on screen holds thousands of descendants that are
+// all near or below pixel size; redrawing them as vectors every frame is what
+// makes the deep zoom slow. Instead such a node is drawn as ONE bitmap. The bitmap
+// is rendered once, by this same vector code, at the next half-octave size at or
+// above the node's size — so it is what the vectors would have drawn, downscaled by
+// at most 1/sqrt(2). The layout is periodic, and the towers — the only thing
+// that tells level n from level n+2 — are sub-pixel inside any bitmap of a level
+// >= LOD_LEVEL, so two bitmap families serve the whole infinite tail; each
+// earlier level gets its own.
+const CACHE_PX = 96;                             // CSS px; nodes this big stay vectors
+const LOD_LEVEL = 10;                            // towers are 6.1^-5 of the node here
+const lodKey = n => (n < LOD_LEVEL ? n : LOD_LEVEL + ((n - LOD_LEVEL) % 2));
+const caches = new Map();
+let building = false;
+// Bitmap of level n whose longest side is 2^(k/2) device px. Rendered on an
+// OffscreenCanvas and frozen into an immutable ImageBitmap (a plain <canvas>
+// where OffscreenCanvas is missing).
+function cached(n, k) {
+  const key = lodKey(n), id = key * 64 + k;
+  let c = caches.get(id);
+  if (c) return c;
+  const L = LEVELS[key];
+  const h = Math.pow(2, k / 2) / Math.max(L.a, 1), w = L.a * h;
+  const cw = Math.max(1, Math.ceil(w)), chh = Math.max(1, Math.ceil(h));
+  let cv;
+  if (typeof OffscreenCanvas !== 'undefined') cv = new OffscreenCanvas(cw, chh);
+  else { cv = document.createElement('canvas'); cv.width = cw; cv.height = chh; }
+  const saved = [ctx, VW, VH, DPR];
+  ctx = cv.getContext('2d'); VW = cw; VH = chh; DPR = 1;
+  ctx.fillStyle = ctx.strokeStyle = '#000'; ctx.lineCap = 'butt';
+  building = true;
+  try { drawLevel(key, 0, 0, h); }
+  finally { building = false; [ctx, VW, VH, DPR] = saved; }
+  const img = cv.transferToImageBitmap ? cv.transferToImageBitmap() : cv;
+  caches.set(id, c = { img, w, h });
+  return c;
+}
+
+function drawLevel(n, X, Y, H) {
+  const L = lvl(n), W = L.a * H;
+  if (X > VW || Y > VH || X + W < 0 || Y + H < 0) return;   // off-screen
+  if (W < MIN_PX && H < MIN_PX) return;                    // sub-pixel
+  drawn++;
+  const S = Math.max(W, H);
+  if (!building && S < CACHE_PX) {
+    const c = cached(n, Math.max(2, Math.ceil(2 * Math.log2(S * DPR))));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(c.img, 0, 0, c.w, c.h, X * DPR, Y * DPR, W * DPR, H * DPR);
+    return;
+  }
+  for (const d of L.decos) {
+    const x = X + d.x * H, y = Y + d.y * H;
+    if (d.t === 'g') { if (d.s * H * 6 > MIN_DECO) glyph(d.g, x, y, d.s * H); }
+    else if (d.f * H * 6 > MIN_DECO) (d.t === 'r' ? rbrace : ubrace)(x, y, d.len * H, d.f * H);
+  }
+  if (n > 0) for (const k of L.kids) drawLevel(n - 1, X + k.x * H, Y + k.y * H, k.s * H);
+}
+
+// Camera: reference level K and its screen height h, set by setView(). The zoom
+// centre maps to screen point (px,py).
+const cam = { K: 1, h: 0 };
+
+function render() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.strokeStyle = '#000';
+  ctx.lineCap = 'butt';                          // TeX rules have square ends
+  const px = VW * CFG.cx, py = VH * CFG.cy;
+  // Walk up from K to the smallest level whose box covers the whole viewport;
+  // everything visible lies inside it.
+  let n = cam.K, h = cam.h;
+  for (let i = 0; i < 400; i++) {
+    const c = cen(n), a = lvl(n).a;
+    const X = px - c.x * h, Y = py - c.y * h;
+    if (X <= 0 && Y <= 0 && X + a * h >= VW && Y + h >= VH) break;
+    n++; h *= grow(n);
+  }
+  const c = cen(n);
+  drawn = 0;
+  drawLevel(n, px - c.x * h, py - c.y * h, h);
+}
+
+// ============================================================================
+// Time -> zoom. Speed v(t) = v0 * grow^t levels/sec, capped at vmax.
+// ============================================================================
+function levelsAt(t) {
+  const { v0, grow: g, vmax } = CFG;
+  const lg = Math.log(g);
+  const tCap = Math.log(vmax / v0) / lg;         // when v reaches vmax
+  if (t <= tCap) return v0 * (Math.pow(g, t) - 1) / lg;
+  return v0 * (Math.pow(g, tCap) - 1) / lg + vmax * (t - tCap);
+}
+
+let start0 = null;
+function setView(t) {
+  // Start: level 1 sized so the end of the formula (last tower + its underbrace
+  // + the seed "2") fills ~70% of the screen height.
+  const L1 = LEVELS[1], lk = L1.kids[L1.last];
+  const lnStart = Math.log((VH * 0.7) / (1 - lk.y));
+  // Total zoom-out so far in natural-log units. One self-similar period (2
+  // levels) is PERIOD_LOG, so one "level" of speed is half of that.
+  const L = levelsAt(t) * PERIOD_LOG / 2;
+  // ln(screen height of level K) = lnStart - L + lhOf(K). Pick the smallest K
+  // whose height is at least half the viewport — entirely in log space.
+  const target = Math.log(VH * 0.5) - lnStart + L;   // need lhOf(K) >= target
+  let K;
+  if (target <= LH[NMAX]) {
+    K = 1;
+    while (K < NMAX && LH[K] < target) K++;
+  } else {
+    const m = NMAX - 1;                              // a V-level inside the table
+    K = m + 2 * Math.ceil((target - LH[m]) / PERIOD_LOG);
+    while (K > 1 && lhOf(K - 1) >= target) K--;
+  }
+  cam.K = K;
+  cam.h = Math.exp(lnStart - L + lhOf(K));
+}
+
+// Setting a canvas's size clears it, so this is only ever called right before a
+// redraw (never from a bare 'resize' event, which would blank the picture until
+// the next frame).
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  VW = innerWidth; VH = innerHeight;
+  ctx.canvas.width = Math.round(VW * DPR);
+  ctx.canvas.height = Math.round(VH * DPR);
+}
+// Window resized, or moved to a screen with a different pixel density.
+const sizeChanged = () =>
+  innerWidth !== VW || innerHeight !== VH || (window.devicePixelRatio || 1) !== DPR;
+
+// ============================================================================
+// Main loop
+// ============================================================================
+let paused = false, tPaused = 0, tOffset = 0;
+const elapsed = () => (performance.now() - start0) / 1000;
+function frame(now) {
+  requestAnimationFrame(frame);
+  // The viewport can still be 0x0 when the page first loads, and a 0-height view
+  // makes log(VH) = -Infinity. Track the live size every frame and skip frames
+  // until there is something to draw into.
+  if (sizeChanged()) resize();
+  if (VW < 2 || VH < 2) return;
+  if (start0 === null) start0 = now;
+  const t = paused ? tPaused : elapsed() - tOffset;
+  setView(Math.max(0, t));
+  render();
+  hud(t);
+}
+// ?t=N: draw the frozen frame at time N (testing), again whenever the window is
+// resized. Polls with setTimeout, not requestAnimationFrame: a headless browser
+// running under a virtual-time budget does not reliably deliver animation
+// frames, but it does run timers.
+let benched = false;
+function still() {
+  if (innerWidth < 2 || innerHeight < 2) { setTimeout(still, 20); return; }
+  if (sizeChanged()) resize();
+  setView(Math.max(0, CFG.t));
+  render();
+  hud(CFG.t);
+  if (Q.has('bench') && !benched) { benched = true; bench(CFG.t); }
+}
+// ?t=N&bench: time repeated renders of that frame; the result goes in the title.
+function bench(t) {
+  const N = 60, t0 = performance.now();
+  for (let i = 0; i < N; i++) { setView(t); render(); }
+  const ms = (performance.now() - t0) / N;
+  document.title = `BENCH ${ms.toFixed(2)} ms/frame, ${drawn} nodes, ${VW}x${VH}`;
+}
+function hud(t) {
+  document.getElementById('hud').textContent = paused
+    ? 'paused — click to resume · R to restart'
+    : `level ${(1 + levelsAt(Math.max(0, t))).toFixed(2)}`;
+}
+
+window.addEventListener('load', () => {
+  ctx = document.getElementById('c').getContext('2d');
+  document.getElementById('c').addEventListener('click', () => {
+    if (start0 === null) return;
+    if (paused) { tOffset = elapsed() - tPaused; paused = false; }   // resume where we stopped
+    else { tPaused = elapsed() - tOffset; paused = true; }
+  });
+  addEventListener('keydown', e => {
+    if (e.key === 'r' || e.key === 'R') { start0 = null; tOffset = 0; paused = false; }
+  });
+  if (CFG.t !== null) { still(); addEventListener('resize', still); }
+  else requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>

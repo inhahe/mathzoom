@@ -1,0 +1,28 @@
+% Glyph sheet for the infinite-zoom page.
+% Each \begin{gl}...\end{gl} becomes its own tightly-cropped PDF page, which
+% glyphs.py turns into an SVG outline. Order matters: glyphs.py maps pages to
+% names by position (see NAMES in glyphs.py).
+\documentclass[multi=gl,border=0pt]{standalone}
+\usepackage{amsmath}
+\newenvironment{gl}{$\displaystyle}{$}
+
+\begin{document}
+% 1  tower: 2^2^...^2, dots climbing diagonally as in math.gif
+\begin{gl}2^{2^{\cdot^{\cdot^{\cdot^{2}}}}}\end{gl}
+% 2  seed digit
+\begin{gl}2\end{gl}
+% 3  horizontal ellipsis
+\begin{gl}\cdots\end{gl}
+% 4  vertical ellipsis
+\begin{gl}\vdots\end{gl}
+% 5-8  right braces of increasing height (TeX builds tall ones from cmex pieces)
+\begin{gl}\left.\vphantom{\rule{0pt}{20pt}}\right\}\end{gl}
+\begin{gl}\left.\vphantom{\rule{0pt}{40pt}}\right\}\end{gl}
+\begin{gl}\left.\vphantom{\rule{0pt}{80pt}}\right\}\end{gl}
+\begin{gl}\left.\vphantom{\rule{0pt}{160pt}}\right\}\end{gl}
+% 9-12 underbraces of increasing width
+\begin{gl}\underbrace{\rule{30pt}{0pt}}\end{gl}
+\begin{gl}\underbrace{\rule{60pt}{0pt}}\end{gl}
+\begin{gl}\underbrace{\rule{120pt}{0pt}}\end{gl}
+\begin{gl}\underbrace{\rule{240pt}{0pt}}\end{gl}
+\end{document}
