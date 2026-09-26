@@ -21,8 +21,8 @@
 // An ever-accelerating zoom out of a self-similar formula for a huge number. It
 // starts on the end of the formula (the last power tower, its underbrace and the
 // seed 10) and speeds up geometrically for ever — until a click. Then the number
-// gets its outermost level: the zoom slows down just as it sped up and settles
-// on the whole, finished number.
+// gets its outermost level, the next one up that can be shown whole, and the zoom
+// stops there on the finished number.
 
 // ============================================================================
 // Settings. All overridable from the URL, e.g. ?v0=0.3&grow=1.2
@@ -44,11 +44,10 @@ const CFG = {
   // a natural-size tower.
   font: num('font', 1 / TOWER.h),
   label: num('label', 0.7),        // the seed 10 relative to f (TeX \scriptstyle)
-  // Speed in levels per second: v0 * grow^t, for ever, until the click; then it
-  // falls geometrically again at `decel` per second (default: mirror the rise).
+  // Speed in levels per second: v0 * grow^t, for ever — after the click too,
+  // until it reaches the level where it stops.
   v0: num('v0', 0.12),
   grow: num('grow', 1.10),
-  decel: num('decel', num('grow', 1.10)),
   cx: num('cx', 0.62), cy: num('cy', 0.60),       // screen position of the zoom centre
   t: Q.has('t') ? parseFloat(Q.get('t')) : null,              // test: freeze at time t
   click: Q.has('click') ? parseFloat(Q.get('click')) : null,  // test: clicked at this time
@@ -122,7 +121,11 @@ function ubrace(x, y, len, f) {
 // Build a level from its child's size (aspect ca, height 1), in child units,
 // then normalise. 'V' stacks children with underbraces; 'H' chains them with
 // right braces. Both show first, second, an ellipsis, the last, then the seed.
-function buildLevel(kind, ca) {
+// `outer` builds the finished number's outermost row, which has no `⋯ }`: every
+// other level's ellipsis stands for a count set by the bracket around it, and
+// the outermost row has no bracket around it — so it has exactly the three
+// columns drawn.
+function buildLevel(kind, ca, outer = false) {
   const cw = ca, ch = 1;
   const kids = [], decos = [];
   // This level's font scale: proportional to the child's short side, so level 1
@@ -152,8 +155,10 @@ function buildLevel(kind, ca) {
   const brace = () => { x += gA; decos.push({ t: 'r', x, y: 0, len: ch, f }); x += rbW; };
   child(); brace(); x += gB;
   child(); brace(); x += gB;
-  decos.push({ t: 'g', g: CDOTS, x, y: mid(CDOTS.h * f), s: f }); x += CDOTS.w * f + gB;
-  brace(); x += gB;
+  if (!outer) {
+    decos.push({ t: 'g', g: CDOTS, x, y: mid(CDOTS.h * f), s: f }); x += CDOTS.w * f + gB;
+    brace(); x += gB;
+  }
   const last = kids.length; child(); brace();
   x += gA;
   decos.push({ t: 'g', g: SEED, x, y: mid(SEED.h * lf), s: lf }); x += SEED.w * lf;
@@ -219,6 +224,33 @@ const cen = n => C[par(n)];
 const grow = n => 1 / lvl(n).kids[lvl(n).last].s;
 const PERIOD_LOG = Math.log(grow(3));            // ln(zoom per period of 2 levels)
 
+// ---- The finished number's outermost row -------------------------------------
+// It is the ordinary row minus its `⋯ }` (see buildLevel). Until the click that
+// row was an ordinary one, so rather than jump, it closes up while the zoom
+// arrives: at w = 0 it is the ordinary row, at w = 1 the outermost one. The `⋯`
+// and its brace shrink and fade into the gap; the last column and everything
+// after it slide left by the gap's width. Every even level >= 2 has the same
+// layout (it is periodic), so one pair of layouts serves every possible top.
+const ROW = LEVELS[2], OUTER = buildLevel('H', LEVELS[1].a, true);
+const SEG0 = ROW.decos[2].x;                     // where the `⋯` starts
+const SEG1 = ROW.kids[ROW.last].x;               // where the last column starts
+const SEG = SEG1 - SEG0;                         // = ROW.a - OUTER.a
+function outerRow(w, N) {
+  const q = 1 - w, eps = 1e-12;
+  const kids = ROW.kids.map(k => (k.x >= SEG1 - eps ? { x: k.x - w * SEG, y: k.y, s: k.s } : k));
+  const decos = ROW.decos.map(d => {
+    if (d.x >= SEG1 - eps) return { ...d, x: d.x - w * SEG };
+    if (d.x < SEG0 - eps) return d;
+    const x = SEG0 + (d.x - SEG0) * q;           // inside the closing gap
+    return d.t === 'g'
+      ? { t: 'g', g: d.g, x, y: 0.5 - (0.5 - d.y) * q, s: d.s * q, alpha: q }
+      : { t: d.t, x, y: d.y, len: d.len, f: d.f * q, alpha: q };
+  });
+  const k = kids[ROW.last], c = cen(N - 1);
+  return { a: ROW.a - w * SEG, kids, decos, last: ROW.last,
+           C: { x: k.x + k.s * c.x, y: k.y + k.s * c.y } };     // the zoom centre in it
+}
+
 // ============================================================================
 // Drawing levels
 // ============================================================================
@@ -266,21 +298,27 @@ function cached(n, k) {
 }
 
 function drawLevel(n, X, Y, H) {
-  const L = lvl(n), W = L.a * H;
+  const isTop = !building && n === cam.top;
+  const L = isTop ? cam.outer : lvl(n), W = L.a * H;
   if (X > VW || Y > VH || X + W < 0 || Y + H < 0) return;   // off-screen
   if (W < MIN_PX && H < MIN_PX) return;                    // sub-pixel
   drawn++;
   const S = Math.max(W, H);
-  if (!building && S < CACHE_PX) {
+  if (!building && !isTop && S < CACHE_PX) {
     const c = cached(n, Math.max(2, Math.ceil(2 * Math.log2(S * DPR))));
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(c.img, 0, 0, c.w, c.h, X * DPR, Y * DPR, W * DPR, H * DPR);
     return;
   }
   for (const d of L.decos) {
+    if (d.alpha !== undefined) {                 // the outermost row's closing `⋯ }`
+      if (d.alpha < 0.004) continue;
+      ctx.globalAlpha = d.alpha;
+    }
     const x = X + d.x * H, y = Y + d.y * H;
     if (d.t === 'g') { if (d.s * H * 6 > MIN_DECO) glyph(d.g, x, y, d.s * H); }
     else if (d.f * H * 6 > MIN_DECO) (d.t === 'r' ? rbrace : ubrace)(x, y, d.len * H, d.f * H);
+    ctx.globalAlpha = 1;
   }
   if (n > 0) for (const k of L.kids) drawLevel(n - 1, X + k.x * H, Y + k.y * H, k.s * H);
 }
@@ -288,14 +326,14 @@ function drawLevel(n, X, Y, H) {
 // ============================================================================
 // Camera
 // ============================================================================
-// A position along the zoom is a "framed level" λ: at λ = N (N even) the row that
-// is level N exactly fills the framing box, centred. Every even level has the
-// tower's proportions, and even level n's screen height at λ is
+// A position along the zoom is a "framed level" λ: at λ = N (N even) level N,
+// finished as the outermost row, exactly fills the framing box, centred. Every
+// even level has the same height as its row, so even level n's screen height
+// at λ is
 //   hFit · e^((n − λ)·PERIOD_LOG/2)
-// so one unit of λ is a zoom of e^(PERIOD_LOG/2): "one level".
-const A_EVEN = LEVELS[0].a;
+// and one unit of λ is a zoom of e^(PERIOD_LOG/2): "one level".
 const FIT_W = 0.92, FIT_H = 0.84;                // framing box, fraction of the viewport
-const hFit = () => Math.min(VH * FIT_H, VW * FIT_W / A_EVEN);
+const hFit = () => Math.min(VH * FIT_H, VW * FIT_W / OUTER.a);
 // The start: level 1's last tower, its underbrace and the seed fill 70% of the
 // screen height. That fixes level 1's height — and level 2's, which is no taller.
 function lamStart() {
@@ -313,21 +351,25 @@ function wrap(lam) {
   return [lam - s, s];
 }
 
-// The camera: reference level K (even) and its screen height h; the zoom
-// centre's screen position (px, py); and the top level, above which there is
-// nothing (Infinity until the click). All level numbers here are wrapped.
-const cam = { K: 2, h: 1, px: 0, py: 0, top: Infinity, root: 2 };
-function setCamera(lam, top, px, py) {
+// The camera: position λ (wrapped); reference level K (even) and its screen
+// height h; the zoom centre's screen position (px, py); the top level, above
+// which there is nothing (Infinity until the click), and its layout `outer`.
+// All level numbers here are wrapped.
+const cam = { lam: 0, K: 2, h: 1, px: 0, py: 0, top: Infinity, outer: null, root: 2 };
+function setCamera(lam, top, px, py, outer = null) {
+  cam.lam = lam;
   cam.K = Math.max(2, 2 * Math.ceil(lam / 2));
   cam.h = hFit() * Math.exp((cam.K - lam) * PERIOD_LOG / 2);
-  cam.px = px; cam.py = py; cam.top = top;
+  cam.px = px; cam.py = py; cam.top = top; cam.outer = outer;
 }
+const layoutOf = n => (n === cam.top ? cam.outer : lvl(n));
+const centreOf = n => (n === cam.top ? cam.outer.C : cen(n));
 // The smallest level (at most the top) whose box covers the viewport; everything
 // visible lies inside it.
 function coverLevel() {
   let n = cam.K, h = cam.h;
   for (let i = 0; i < 400 && n < cam.top; i++) {
-    const c = cen(n), a = lvl(n).a;
+    const c = centreOf(n), a = layoutOf(n).a;
     const X = cam.px - c.x * h, Y = cam.py - c.y * h;
     if (X <= 0 && Y <= 0 && X + a * h >= VW && Y + h >= VH) break;
     n++; h *= grow(n);
@@ -342,7 +384,7 @@ function render() {
   ctx.lineCap = 'butt';                          // TeX rules have square ends
   const [n, h] = coverLevel();
   cam.root = n;
-  const c = cen(n);
+  const c = centreOf(n);
   drawn = 0;
   drawLevel(n, cam.px - c.x * h, cam.py - c.y * h, h);
 }
@@ -351,14 +393,11 @@ function render() {
 // Motion
 // ============================================================================
 const LG = Math.log(Math.max(1.0001, CFG.grow));
-const K0 = Math.log(Math.max(1.0001, CFG.decel));
 const lnExpm1 = x => (x > 30 ? x + Math.log1p(-Math.exp(-x)) : Math.log(Math.expm1(x)));
-const logAdd = (a, b) => Math.max(a, b) + Math.log1p(Math.exp(-Math.abs(a - b)));
 // Beyond this many levels a double no longer pins the phase within a period. The
 // picture is pure flicker long before that, so from there each frame just shows a
 // random phase — which is what any exact phase would look like anyway.
 const EXACT = 1e12, LN_EXACT = Math.log(EXACT);
-const mod2 = x => x - 2 * Math.floor(x / 2);
 
 // ---- Before the click --------------------------------------------------------
 // Speed v0·grow^t levels/s; distance P(t) = v0·(grow^t − 1)/ln grow. Both in log
@@ -367,106 +406,48 @@ const lnSpeed = t => Math.log(CFG.v0) + t * LG;
 const lnDist = t => Math.log(CFG.v0 / LG) + lnExpm1(Math.max(t, 1e-12) * LG);
 
 // ---- The ending --------------------------------------------------------------
-// At the click the number gets its outermost level N — a row, like every even
-// level — about as far above us as we have already come. The remaining distance
-// R then falls to 0 under the speed law
-//     speed = k(R)·(R + R0)
-// k = ln(decel) while R <= R_FAST: geometric decay — the mirror image of the
-//   speed-up — with R0 = v0/k, so that it is back to the starting speed v0 at the
-//   end of it.
-// Above R_FAST the picture is pure flicker, so there k grows as (R/R_FAST)^2:
-//   whatever the speed, that part is over in ~5 s instead of mirroring hours.
-// Below R_STOP the speed tapers as √R (constant deceleration) to a dead stop at
-// R = 0, where level N is framed exactly. Over the last R_PAN levels the zoom
-// centre drifts from (cx, cy) to wherever that framing puts it.
-const R_FAST = 1e6, FAST_POW = 2, R_STOP = 0.5, R_PAN = 2, D_MIN = 1.5, T_BLEND = 1.2;
-const R0 = CFG.v0 / K0;
+// At the click the number gets its outermost level N: the next row up that can
+// be shown whole — the first even level at or above both where we are (plus
+// D_MIN, so the last moves have a little room) and everything now on screen.
+// The zoom carries on exactly as before, same accelerating speed, and stops dead
+// when level N fills the framing box. On the way the zoom centre drifts from
+// (cx, cy) to where centring N puts it, and N's `⋯ }` closes up. Going fast,
+// all of that is over by the next frame; at the very start it takes a few
+// seconds. The chosen position is the one on screen at the click, so in the
+// flicker (where each frame is a random phase) it is the frame you clicked on.
+const D_MIN = 0.35;
 let mode = 'zoom';                // 'zoom' → click → 'ending' → 'done'
 let clock = 0;                    // virtual seconds of zooming
 let E = null;                     // the ending's state
 
 function startEnding() {
-  updateView();                   // where we are now, and the level drawn as root
+  const lp = lnDist(clock);
+  const exact = lp < LN_EXACT;
+  // Where we are. In the flicker, keep the frame on screen rather than re-roll —
+  // unless none has been shown yet (flicker frames always have λ >= LAM_W).
+  if (exact || cam.lam < LAM_W) updateView();
   const [root] = coverLevel();
-  const lnv = lnSpeed(clock), v = Math.exp(lnv), lp = lnDist(clock);
-  // The law's natural distance for our speed.
-  let lnD;
-  if (v <= K0 * (R_FAST + R0)) lnD = Math.log(Math.max(1e-9, v / K0 - R0));
-  else lnD = (lnv - Math.log(K0) + FAST_POW * Math.log(R_FAST)) / (FAST_POW + 1);
-  const e = { v, r0: R0, tau: 0, blend: false, stopping: false, R: 0, N: Infinity };
-  if (lp < LN_EXACT && lnD < LN_EXACT) {
-    // Exact: choose the even top level N and continue at exactly our speed.
-    const lamC = lamStart() + Math.exp(lp), D = Math.exp(lnD);
-    const [, shift] = wrap(lamC);
-    let N = 2 * Math.floor((lamC + D) / 2);                // so R0' >= R0 below
-    const lo = 2 * Math.ceil(Math.max(lamC + D_MIN, root + shift) / 2);
-    if (N < lo) N = lo;                                    // early click: must go further
-    e.N = N; e.R = N - lamC;
-    if (e.R <= R_FAST) {
-      e.r0 = v / K0 - e.R;                                 // speed continuity
-      if (e.r0 < R0) { e.r0 = R0; e.blend = true; }        // too slow to get there: ease in
-    }
-    e.lnN = Math.log(N);
-  } else {
-    // Astronomical: the picture is flicker, and N's exact value can't matter —
-    // only that it is even.
-    e.R = Infinity;
-    e.lnN = logAdd(lp, lnD);                               // distance come + to go
-  }
-  e.D0 = e.R === Infinity ? Infinity : e.R;
-  e.w = e.R === Infinity ? lnD : Math.log(e.R + e.r0);    // ln(R + R0'), the state above R_STOP
-  if (e.R !== Infinity && e.R < R_STOP) { e.stopping = true; }
-  E = e;
+  const N = 2 * Math.ceil(Math.max(cam.lam + D_MIN, root) / 2);  // wrapped, like cam.lam
+  E = {
+    N, D: N - cam.lam, R: N - cam.lam, tau: 0, lnv: lnSpeed(clock),
+    // For the HUD: the true level numbers are the wrapped ones plus `shift`;
+    // when astronomical, only their logarithm (the distance come) is kept.
+    shift: exact ? wrap(lamStart() + Math.exp(lp))[1] : null, lnN: lp,
+  };
   mode = 'ending';
   paused = false;                 // a click while paused means "show me the end"
-}
-
-// Remaining distance in levels (Infinity while it is too large to be exact).
-function remaining() {
-  if (E.stopping) return E.R;
-  if (E.w > LN_EXACT) return Infinity;
-  return Math.max(0, Math.exp(E.w) - E.r0);
+  dirty = true;
 }
 
 function stepEnding(dt) {
-  const e = E;
-  const lnFast = Math.log(R_FAST), wStop = Math.log(R_STOP + e.r0);
-  const v1 = K0 * (R_STOP + e.r0);               // speed where the taper begins
-  while (dt > 1e-12 && mode === 'ending') {
-    if (e.blend && e.tau < T_BLEND) {
-      // Early click: ease from our speed into the law (small numbers only).
-      const h = Math.min(dt, 1 / 240, T_BLEND - e.tau);
-      const x = e.tau / T_BLEND, b = x * x * (3 - 2 * x);
-      const R = remaining();
-      const law = e.stopping ? v1 * Math.sqrt(R / R_STOP) : K0 * (R + e.r0);
-      let Rn = R - (b * law + (1 - b) * e.v) * h;
-      e.tau += h; dt -= h;
-      if (Rn <= 0) { finishEnding(); return; }
-      if (Rn < R_STOP) { e.stopping = true; e.R = Rn; }
-      else e.w = Math.log(Rn + e.r0);
-      continue;
-    }
-    if (e.stopping) {                            // √R taper: √R falls linearly
-      const s = Math.sqrt(e.R) - v1 * dt / (2 * Math.sqrt(R_STOP));
-      e.tau += dt; dt = 0;
-      if (s <= 0) { finishEnding(); return; }
-      e.R = s * s;
-      continue;
-    }
-    if (e.w > lnFast) {                          // flicker: e^(-p(w - lnFast)) grows linearly
-      const u = e.w - lnFast, p = FAST_POW;
-      const q = Math.exp(-p * u);
-      const need = (1 - q) / (p * K0);           // time to get down to R_FAST
-      if (dt < need) { e.w = lnFast - Math.log(q + p * K0 * dt) / p; e.tau += dt; dt = 0; }
-      else { e.w = lnFast; e.tau += need; dt -= need; }       // exactly on the boundary,
-      continue;                                               // so the next pass is geometric
-    }
-    const need = (e.w - wStop) / K0;             // geometric: w falls linearly
-    if (dt < need) { e.w -= K0 * dt; e.tau += dt; dt = 0; }
-    else { e.stopping = true; e.R = R_STOP; e.tau += need; dt -= need; }
-  }
+  E.tau += dt;
+  // Distance covered since the click at the unchanged law: v·(grow^τ − 1)/ln grow,
+  // v being the speed at the click (in logs: v may be astronomical).
+  const lnCovered = E.lnv + lnExpm1(E.tau * LG) - Math.log(LG);
+  if (lnCovered >= Math.log(E.D)) finishEnding();
+  else E.R = E.D - Math.exp(lnCovered);
 }
-function finishEnding() { E.R = 0; E.stopping = true; mode = 'done'; dirty = true; }
+function finishEnding() { E.R = 0; mode = 'done'; dirty = true; }
 
 // ---- The view for the current state --------------------------------------------
 // Sets the camera and returns the level on show for the HUD, as { v } when it is
@@ -484,32 +465,15 @@ function updateView() {
     setCamera(wrap(lam)[0], Infinity, px0, py0);
     return { v: lam };
   }
-  const R = remaining();
-  if (R === Infinity) {                          // still in the flicker
-    setCamera(LAM_W + 2 * Math.random(), Infinity, px0, py0);
-    return { ln: E.lnN };
-  }
-  // Where the top level is, relative to us, and the level on show.
-  let lamW, topW, shown;
-  if (E.N !== Infinity) {
-    const lam = E.N - R, [lw, s] = wrap(lam);
-    lamW = lw; topW = E.N - s; shown = { v: lam };
-    if (E.N >= 1e6) shown = { ln: Math.log(lam) };
-  } else {                                       // N astronomical: only its parity counts
-    lamW = LAM_W + mod2(-R);
-    topW = LAM_W + 2 * Math.round((R + lamW - LAM_W) / 2);
-    shown = { ln: E.lnN };
-  }
+  // Ending / done: λ = N − R, in the wrapped numbering fixed at the click.
+  const lam = E.N - E.R;
+  const w = smootherstep(Math.min(1, Math.max(0, 1 - E.R / E.D)));
+  const outer = outerRow(w, E.N), hf = hFit();
   // Drift the zoom centre to where centring the top level puts it.
-  let px = px0, py = py0;
-  const span = Math.min(R_PAN, E.D0);
-  if (R < span) {
-    const w = smootherstep(1 - R / span), ct = cen(topW), hf = hFit();
-    px += w * (VW / 2 + (ct.x - A_EVEN / 2) * hf - px0);
-    py += w * (VH / 2 + (ct.y - 0.5) * hf - py0);
-  }
-  setCamera(lamW, topW, px, py);
-  return shown;
+  const px = px0 + w * (VW / 2 + (outer.C.x - outer.a / 2) * hf - px0);
+  const py = py0 + w * (VH / 2 + (outer.C.y - 0.5) * hf - py0);
+  setCamera(lam, E.N, px, py, outer);
+  return E.shift !== null ? { v: lam + E.shift } : { ln: E.lnN };
 }
 
 // ============================================================================

@@ -80,7 +80,8 @@ if (argv.includes('--trace')) {
     const e = D.E;
     console.log(`t=${x.toFixed(2).padStart(8)}  ${D.mode.padEnd(6)} K=${String(D.cam.K).padStart(4)} h=${D.cam.h.toFixed(0).padStart(6)} ` +
                 `top=${String(D.cam.top).padStart(8)} pivot=(${D.cam.px.toFixed(0)},${D.cam.py.toFixed(0)})  ` +
-                (e ? `N=${e.N} R=${(e.stopping ? e.R : Math.exp(e.w) - e.r0).toPrecision(5)} r0=${e.r0.toFixed(3)} blend=${e.blend}  ` : '') +
+                (e ? `N=${e.N} D=${e.D.toFixed(3)} R=${e.R.toFixed(4)} ` +
+                     `outer.a=${D.cam.outer ? D.cam.outer.a.toFixed(4) : '-'}  ` : '') +
                 `| ${hudEl.textContent}`);
   }
   process.exit(0);

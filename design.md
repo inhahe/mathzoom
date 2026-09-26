@@ -4,9 +4,9 @@ A zoom out through a self-similar typeset formula for an unimaginably large
 number, inspired by `D:\pics\misc\math.gif` and `math3.gif`. It starts on the end
 of the formula and accelerates geometrically for ever — through a blur, a
 stroboscope and pure flicker — until the viewer clicks. Then the number gets its
-outermost level: the zoom slows down just as it sped up and settles on the whole,
-finished number. Everything on screen is TeX's own typesetting (Computer Modern
-outlines), drawn as vectors, so it stays sharp at every scale.
+outermost level, the next one up that can be shown whole, and the zoom stops
+there on the finished number. Everything on screen is TeX's own typesetting
+(Computer Modern outlines), drawn as vectors, so it stays sharp at every scale.
 
 ## Files
 
@@ -46,10 +46,26 @@ entries as well keeps the whole thing one uniform number. (`math3.gif` uses 100.
 
 **Every bracket has a single numeral on its far side** — each level's last brace
 is seeded with `10`. That is why the finished number ends the same way: its
-outermost level is just another level (a row, like every even level), with `10`
-after its last brace. (`math3.gif` instead ends its top row with a small chain of
-towers; that would be the one bracket in the number with a sub-formula on its far
-side, so it was deliberately not copied.)
+outermost level is a row like every even level, with `10` after its last brace.
+(`math3.gif` instead ends its top row with a small chain of towers; that would be
+the one bracket in the number with a sub-formula on its far side, so it was
+deliberately not copied.)
+
+**The outermost row has no ellipsis.** Every other level's `⋯`/`⋮` stands for a
+count that the bracket around it sets (a row's length comes from the underbrace
+below it, a column's height from the brace beside it). The outermost row has no
+bracket around it, so its `⋯` would stand for nothing: it has exactly the three
+columns drawn, `col } col } col } 10` — as `math3.gif`'s top row also has no
+ellipsis.
+
+**Size.** A tower with 10 on its underbrace is 10↑↑10; a column of c towers is
+10↑↑↑(c+1); each further level adds one Knuth arrow (it iterates the level below,
+its count set by the bracket around it). So a finished number whose top is level
+N is at least 10 ↑^(N+2) 4 — in Conway's chained arrows about 10→4→(N+2), `f_ω`
+in the fast-growing hierarchy. Every finished number exceeds Graham's g₁, and any
+N one could actually reach (even 10^(10^16), the age of the universe at the
+default speed) stays below g₂ — far short of Graham's number g₆₄, let alone
+TREE(3) or Rayo's number.
 
 ## Exact self-similarity (the "two images" question)
 
@@ -122,8 +138,9 @@ name (`tower`, `seed`, …), so changing the numeral only touches `glyphs.tex`.
   seed — "the end of the formula"); at level 1 it is the centre of the last tower,
   its underbrace and the seed. It converges geometrically (≈ 1/6.1 per period).
   Until the ending it sits at screen position `(cx, cy)`.
-- **Position = the framed level λ.** At λ = N (N even) the row that is level N
-  exactly fills the framing box (92% × 84% of the viewport), centred. Even level
+- **Position = the framed level λ.** At λ = N (N even) level N, drawn as the
+  finished outermost row, exactly fills the framing box (92% × 84% of the
+  viewport), centred. Even level
   n's screen height at λ is `hFit · e^((n − λ)·PERIOD_LOG/2)`, so one unit of λ is
   a zoom of √6.1081 ≈ 2.47× — "one level". The HUD shows λ; the start (the last
   tower + underbrace + seed filling 70% of the height) is λ ≈ 0.95.
@@ -132,7 +149,9 @@ name (`tower`, `seed`, …), so changing the numeral only touches `glyphs.tex`.
   amount. Level indices stay small however deep the zoom (10⁸² levels is fine).
 - **Top level.** Before the click there is none (the formula continues upward for
   ever). After it, level N has nothing above it: the covering-level search stops
-  there and the space around it is white.
+  there and the space around it is white. Level N is drawn with `outerRow(w)`, which
+  closes its `⋯ }` up as w goes 0 → 1 (the `⋯` and its brace shrink and fade into
+  the gap, the last column slides left), so nothing jumps at the click.
 - **Frame**: find the smallest level (≤ top) whose box covers the viewport, draw it
   recursively, culling nodes that are off-screen or under `MIN_PX` (0.8 px) and
   decorations under `MIN_DECO`.
@@ -162,31 +181,20 @@ however long it runs. Beyond 10¹² levels a double can't pin the phase within a
 period, but the picture is pure flicker long before that, so each frame then
 shows a random phase — indistinguishable from the exact one.
 
-**The ending (after the click).** The number gets its top level N: an even level
-(a row), about as far above as we have already come, so the slow-down mirrors the
-speed-up. The remaining distance R then falls to 0 under the speed law
-`speed = k(R)·(R + R0)`:
+**The ending (after the click).** The number gets its top level N: the next row
+up that can be shown whole — the first even level at or above both the current
+position (plus `D_MIN` = 0.35, so the last moves have a little room) and the
+level currently covering the screen (so nothing on screen vanishes). The zoom
+carries on unchanged, same accelerating speed, and stops dead the moment level N
+fills the framing box. Meanwhile (weight w = smootherstep of the distance
+covered) the zoom centre drifts from `(cx, cy)` to where centring level N puts it,
+and N's `⋯ }` closes up. The choice uses the frame on screen at the click — in
+the flicker, the random phase you clicked on.
 
-- `k = ln(decel)` (default `ln grow`) while R ≤ 10⁶: geometric decay — the mirror
-  image of the acceleration, beats and all in reverse — with `R0 = v0/k`, so it is
-  back to the starting speed v0 when this part ends. N is chosen so this law's
-  speed at the click equals the current speed exactly (by adjusting R0 upward by
-  < 2 levels).
-- Above 10⁶ levels the picture is flicker, so there `k` grows as (R/10⁶)²: however
-  fast we were going, that part is over in ≤ 5 s instead of mirroring hours of
-  waiting. So the ending takes about as long as the zoom did, but never more than
-  ~2.5 minutes.
-- Below R = 0.5 the speed tapers as √R (constant deceleration) to a dead stop at
-  R = 0, where level N is framed exactly.
-- Over the last 2 levels the zoom centre drifts from `(cx, cy)` to wherever
-  centring the top level puts it: the right end of the number (its last `} 10`)
-  and its bottom come into view, and it settles in the middle of the screen.
-- An early click (while it is still slow) can require going further than that law
-  allows from the current speed; then N is the smallest row that contains
-  everything on screen, and the speed eases into the law over 1.2 s.
-- Examples (1600×900): click at 20 s (level 8.2) → N = 14, done ~14 s later;
-  click at 90 s → N = 13,376, done ~85 s later; click at 300 s (level 3.3·10¹²)
-  or at 2000 s (level 7.7·10⁸²) → done ~2.5 min later.
+- Going fast (from about a minute in), all of that happens by the next frame: the
+  picture freezes into the finished number.
+- Right at the start it takes a few seconds (click at 0 s → N = 4, stops ~13 s
+  later at the still-slow speed); click at 20 s (level 8.2) → N = 10, ~2 s later.
 
 The finished picture is the same for every large N (the layout is periodic and
 the towers are far below a pixel); only the number of levels differs.
@@ -209,12 +217,12 @@ the towers are far below a pixel); only the number of levels differs.
 
 ## Controls and URL parameters
 
-- **Click**: end it — the zoom slows down onto the finished number. Once it has
-  settled, click again to start over. **Space** / `P`: pause. **R**: restart.
-  The corner shows the level; at the end, how many levels the number has.
+- **Click**: end it — the zoom stops at the next level where the whole number
+  fits. Once it has stopped, click again to start over. **Space** / `P`: pause.
+  **R**: restart. The corner shows the level; at the end, how many levels the
+  number has.
 - `?font=` (default 1 / tower height), `?label=` (0.7): type size, seed size.
-- `?v0=` (0.12), `?grow=` (1.10): speed before the click. `?decel=` (= grow):
-  the slow-down rate after it.
+- `?v0=` (0.12), `?grow=` (1.10): the zoom speed.
 - `?cx=`, `?cy=` (0.62, 0.60): where on screen the zoom centre sits.
 - `?t=N` (testing): show time N; with `&click=C`, as if clicked at time C.
   `&bench`: time 60 renders of that frame, result in the page title. In these test
