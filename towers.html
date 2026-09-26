@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>An infinite number — towers</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: pointer; }
+  #hud, #hub { position: fixed; bottom: 10px; font: 12px/1.4 system-ui, sans-serif; color: #999; }
+  #hud { left: 12px; user-select: none; pointer-events: none; }
+  #hub { right: 12px; text-decoration: none; }
+  #hub:hover { color: #333; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<a id="hub" href="index.html">all four numbers</a>
+<script src="glyphs.js"></script>
+<script src="braces.js"></script>
+<script src="metrics.js"></script>
+<script src="engine.js"></script>
+<script>mathzoom({ base: GLYPHS.tower, grammar: 'braces', top: 'H' });</script>
+</body>
+</html>

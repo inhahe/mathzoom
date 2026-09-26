@@ -1,14 +1,16 @@
-# Run index.html in headless Chrome once and report the result.
+# Run one page of the project in headless Chrome once and report the result.
 #
-#   dev\run-chrome.ps1 -Query "t=30&bench"                  -> prints the page title
-#                                                              ("BENCH x ms/frame, ...")
-#   dev\run-chrome.ps1 -Query "t=30" -Shot C:\tmp\t30.png   -> saves a screenshot
+#   dev\run-chrome.ps1 -Page towers.html -Query "t=30&bench"   -> prints the page title
+#                                                                 ("BENCH x ms/frame, ...")
+#   dev\run-chrome.ps1 -Page arrows.html -Query "t=30&click=0" -Shot C:\tmp\a.png
+#                                                              -> saves a screenshot
 #
 # Headless Chrome only advances its virtual clock while the page is idle, so on a
 # heavily loaded machine a run can stall; hence the timeout. The run uses its own
 # throwaway profile (never the user's), and on timeout kills only the Chrome
 # process tree this script started, by PID.
 param(
+  [string]$Page = "towers.html",
   [string]$Query = "t=0",
   [string]$Shot = "",
   [int]$Width = 1600, [int]$Height = 900,
@@ -16,7 +18,7 @@ param(
   [int]$Budget = 2000
 )
 $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-$page = (Resolve-Path (Join-Path $PSScriptRoot "..\index.html")).Path
+$page = (Resolve-Path (Join-Path $PSScriptRoot "..\$Page")).Path
 $url = ([Uri]$page).AbsoluteUri + "?" + $Query
 $prof = Join-Path $env:TEMP ("mathzoom-prof-" + [guid]::NewGuid().ToString("N"))
 $out = Join-Path $env:TEMP ("mathzoom-out-" + [guid]::NewGuid().ToString("N") + ".txt")

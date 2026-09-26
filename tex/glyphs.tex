@@ -26,4 +26,18 @@
 \begin{gl}\underbrace{\rule{60pt}{0pt}}\end{gl}
 \begin{gl}\underbrace{\rule{120pt}{0pt}}\end{gl}
 \begin{gl}\underbrace{\rule{240pt}{0pt}}\end{gl}
+% 13 arrows page base: Knuth's arrows, as in Graham's diagram
+\begin{gl}10\uparrow\uparrow\cdots\uparrow10\end{gl}
+% 14 chains page base: a Conway chain
+\begin{gl}10\to10\to\cdots\to10\end{gl}
+% 15 brackets page base: an empty bracket, one step
+\begin{gl}[\,]\end{gl}
+% 16 brackets page key: what the brackets mean, in standard notation
+\begin{gl}\begin{array}{r@{\;=\;}l}
+[\,]\;10 & 10\uparrow10\\[5pt]
+[\,][\,]\;10 & 10\uparrow\uparrow10\\[5pt]
+[[\,]]\;10 & 10\underbrace{\uparrow\uparrow\cdots\uparrow}_{10}10
+\end{array}\end{gl}
+% 17 a tall square bracket, only measured (stem, serif) by metrics.py
+\begin{gl}\left[\vphantom{\rule{0pt}{160pt}}\right.\end{gl}
 \end{document}

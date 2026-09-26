@@ -20,13 +20,13 @@ of ω, ω^ω, ω^ω^ω, …. N is the number of levels in the finished number.
 
 ## 1. Towers — done
 
-The original page (formerly `index.html`). Base: a power tower of 10s whose
+The original page (formerly `index.html`, now `towers.html`). Base: a power tower of 10s whose
 underbrace gives its height. Columns stack towers with underbraces (each
 tower's height is the value of the one below); rows chain columns with right
 braces (each column's length is the value to its right); seeds are 10. Each
 level adds one Knuth arrow: a finished number of N levels is ≥ 10 ↑^(N+2) 4.
 
-## 2. Arrows (Graham ladders, nested) — planned
+## 2. Arrows (Graham ladders, nested) — done
 
 - **Base:** `10 ↑↑⋯↑ 10` with an underbrace under the arrows only, giving how
   many there are — as in Graham's own diagram.
@@ -37,10 +37,11 @@ level adds one Knuth arrow: a finished number of N levels is ≥ 10 ↑^(N+2) 4.
   bracket around it. Level 3 stacks those, and so on, alternating as now.
 - **Size:** every finished number beats Graham's number, even from a click in the
   first second; N levels sit at rung ω + N (Conway chain ≈ 10→10→10→N).
-- **New:** the base glyph and its arrow-run span (the level-1 underbrace, the `⋮`
-  and the seed are centred on the arrows).
+- **As built:** the finished number is a column (rows of these are far wider than
+  a screen). Rows cap their braces' type so they stay curly, and the width that
+  exact self-similarity still needs goes around the row's `⋯`.
 
-## 3. Chains — planned
+## 3. Chains — done
 
 - **Base:** the Conway chain `10→10→⋯→10` with an underbrace giving how many 10s
   it has (like a tower's height).
@@ -50,8 +51,10 @@ level adds one Knuth arrow: a finished number of N levels is ≥ 10 ↑^(N+2) 4.
 - **Size:** a chain's value as a function of its length is already a fold of
   folds (rung ω²); each level adds a step, so N levels sit at ω² + N — past every
   Conway chain anyone could write out.
+- **As built:** like arrows, the finished number is a column, and rows are wide
+  with a large gap around their `⋯`.
 
-## 4. Brackets — planned
+## 4. Brackets — done
 
 - **Meaning:** a bracket with nothing inside, `[ ]`, is one step; brackets side by
   side add; a bracket around brackets folds as many times as what is inside it
@@ -71,7 +74,7 @@ level adds one Knuth arrow: a finished number of N levels is ≥ 10 ↑^(N+2) 4.
 - **New:** square brackets drawn from TeX's own proportions (stem and serifs,
   any length, four orientations), the bracket grammar, the key.
 
-## Hub — planned
+## Hub — done
 
 `index.html`: the four pages in order, each with a picture of a finished
 number, its rung, and what it beats, so the step up in power reads left to

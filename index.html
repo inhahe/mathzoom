@@ -3,606 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>An infinite number</title>
+<title>Four infinite numbers</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
-  canvas { display: block; width: 100vw; height: 100vh; cursor: pointer; }
-  #hud { position: fixed; left: 12px; bottom: 10px; font: 12px/1.4 system-ui, sans-serif;
-         color: #999; user-select: none; pointer-events: none; }
+  body { margin: 0; background: #fff; color: #222; font: 16px/1.5 Georgia, 'Times New Roman', serif;
+         font-variant-numeric: lining-nums; }
+  main { max-width: 1440px; margin: 0 auto; padding: 44px 28px 56px; }
+  h1 { font-weight: normal; font-size: 36px; margin: 0 0 8px; }
+  .lede { color: #555; max-width: 62em; margin: 0 0 12px; }
+  .rungs { color: #777; font-size: 14px; max-width: 70em; margin: 0 0 40px; }
+  /* The four in a rising staircase, weakest on the left. */
+  .stairs { display: flex; align-items: flex-end; }
+  .card { flex: 1 1 0; min-width: 0; display: block; color: inherit; text-decoration: none;
+          border: 1px solid #ddd; border-radius: 10px; overflow: hidden; background: #fff;
+          transition: box-shadow .15s, transform .15s; }
+  .card:hover { box-shadow: 0 8px 28px rgba(0, 0, 0, .13); transform: translateY(-3px); }
+  .card:nth-of-type(2) { margin-bottom: 36px; }
+  .card:nth-of-type(3) { margin-bottom: 72px; }
+  .card:nth-of-type(4) { margin-bottom: 108px; }
+  .card iframe { display: block; width: 100%; aspect-ratio: 16 / 10; border: 0;
+                 pointer-events: none; background: #fff; }
+  .card .txt { padding: 12px 16px 16px; border-top: 1px solid #eee; }
+  .card h2 { font-weight: normal; font-size: 22px; margin: 0; }
+  .card .how { color: #666; font-size: 14px; margin: 2px 0 10px; }
+  .card .rung { font-size: 22px; margin: 0; }
+  .card .beats { color: #444; font-size: 14px; margin: 4px 0 0; }
+  .sep { flex: 0 0 auto; align-self: center; font-size: 40px; color: #bbb; padding: 0 10px; }
+  footer { color: #888; font-size: 14px; margin-top: 44px; }
+  @media (max-width: 900px) {
+    .stairs { flex-direction: column; align-items: stretch; }
+    .card { margin-bottom: 0 !important; }
+    .sep { transform: rotate(90deg); align-self: center; padding: 6px 0; }
+  }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div id="hud"></div>
-<script src="glyphs.js"></script>
-<script src="braces.js"></script>
-<script>
-"use strict";
-// An ever-accelerating zoom out of a self-similar formula for a huge number. It
-// starts on the end of the formula (the last power tower, its underbrace and the
-// seed 10) and speeds up geometrically for ever — until a click. Then the number
-// gets its outermost level, the next one up that can be shown whole, and the zoom
-// stops there on the finished number.
+<main>
+  <h1>Four infinite numbers</h1>
+  <p class="lede">Each page starts on the end of a formula for a huge number and zooms out for
+  ever, faster and faster, until you click — then the formula gets its outermost level and you
+  are looking at one whole, finished number. Left to right, each way of writing it is a whole
+  tier more powerful than the one before.</p>
+  <p class="rungs">The rungs count steps and folds. A step repeats the operation before it (+, ×,
+  ^, ↑↑, …); a fold, ω, jumps to “as many steps as the number itself”; ω² folds the folds; ε₀ is
+  where ω, ω<sup>ω</sup>, ω<sup>ω<sup>ω</sup></sup>, … is heading. N is how many levels deep your
+  finished number is — you choose it by when you click.</p>
 
-// ============================================================================
-// Settings. All overridable from the URL, e.g. ?v0=0.3&grow=1.2
-// ============================================================================
-const Q = new URLSearchParams(location.search);
-// In the test modes (?t= / ?bench) surface any error in the title, where a
-// headless browser's --dump-dom can see it.
-if (Q.has('t') || Q.has('bench'))
-  window.onerror = (msg, src, line, col) => { document.title = `ERROR ${msg} @${line}:${col}`; };
-const num = (k, d) => (Q.has(k) ? parseFloat(Q.get(k)) : d);
+  <div class="stairs">
+    <a class="card" href="towers.html">
+      <iframe src="towers.html?t=30&amp;click=0&amp;embed" loading="lazy" tabindex="-1" title="towers"></iframe>
+      <div class="txt">
+        <h2>Towers</h2>
+        <p class="how">towers of 10s, stacked with braces</p>
+        <p class="rung">rung N</p>
+        <p class="beats">past Graham’s first step, g<sub>1</sub></p>
+      </div>
+    </a>
+    <span class="sep" aria-hidden="true">≪</span>
+    <a class="card" href="arrows.html">
+      <iframe src="arrows.html?t=30&amp;click=0&amp;embed" loading="lazy" tabindex="-1" title="arrows"></iframe>
+      <div class="txt">
+        <h2>Arrows</h2>
+        <p class="how">Knuth’s arrows: Graham’s diagram, nested</p>
+        <p class="rung">rung ω + N</p>
+        <p class="beats">beats Graham’s number, whenever you click</p>
+      </div>
+    </a>
+    <span class="sep" aria-hidden="true">≪</span>
+    <a class="card" href="chains.html">
+      <iframe src="chains.html?t=30&amp;click=0&amp;embed" loading="lazy" tabindex="-1" title="chains"></iframe>
+      <div class="txt">
+        <h2>Chains</h2>
+        <p class="how">Conway’s chained arrows, nested</p>
+        <p class="rung">rung ω² + N</p>
+        <p class="beats">beats any Conway chain anyone could write out</p>
+      </div>
+    </a>
+    <span class="sep" aria-hidden="true">≪</span>
+    <a class="card" href="brackets.html">
+      <iframe src="brackets.html?t=30&amp;click=0&amp;embed" loading="lazy" tabindex="-1" title="brackets"></iframe>
+      <div class="txt">
+        <h2>Brackets</h2>
+        <p class="how">brackets that fold whatever is inside them</p>
+        <p class="rung">rung ω<sup>ω<sup>⋰<sup>ω</sup></sup></sup> (N high)</p>
+        <p class="beats">climbs toward ε₀ — past everything the other three can reach</p>
+      </div>
+    </a>
+  </div>
 
-// Glyphs and braces: TeX outlines from tex/glyphs.py and tex/braces.py.
-const G = window.GLYPHS, B = window.BRACES;
-const TOWER = G.tower, SEED = G.seed, CDOTS = G.cdots, VDOTS = G.vdots;
-
-const CFG = {
-  // Each level is typeset at one "font size" f, proportional to its children's
-  // short side. The default makes level 1 exactly TeX's own 10pt setting around
-  // a natural-size tower.
-  font: num('font', 1 / TOWER.h),
-  label: num('label', 0.7),        // the seed 10 relative to f (TeX \scriptstyle)
-  // Speed in levels per second: v0 * grow^t, for ever — after the click too,
-  // until it reaches the level where it stops.
-  v0: num('v0', 0.12),
-  grow: num('grow', 1.10),
-  cx: num('cx', 0.62), cy: num('cy', 0.60),       // screen position of the zoom centre
-  t: Q.has('t') ? parseFloat(Q.get('t')) : null,              // test: freeze at time t
-  click: Q.has('click') ? parseFloat(Q.get('click')) : null,  // test: clicked at this time
-};
-
-// ============================================================================
-// Drawing glyphs and braces
-// ============================================================================
-const pcache = new Map();
-const path = d => { let p = pcache.get(d); if (!p) pcache.set(d, p = new Path2D(d)); return p; };
-let ctx, DPR = 1;
-
-// Draw glyph g with its ink box's top-left at screen (x,y), uniformly scaled by s.
-function glyph(g, x, y, s) {
-  for (const pt of g.parts) {
-    const m = pt.m;
-    ctx.setTransform(DPR * s, 0, 0, DPR * s, DPR * x, DPR * y);
-    ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-    if (pt.sw) { ctx.lineWidth = pt.sw; ctx.stroke(path(pt.d)); }
-    else ctx.fill(path(pt.d));
-  }
-}
-
-// ---- Extensible braces, built the way TeX builds them ----------------------
-// Fixed-size curved pieces (TeX's own) at font scale f, joined by a straight
-// spine that stretches to any length. The spine is TeX's rule thickness (1.196pt
-// at 10pt), so stroke weight follows the level's text size. A level Z^2 larger
-// has pieces Z^2 larger AND a spine Z^2 longer — an exact scaled copy.
-function piece(p, x, y, f, dx, dy) {
-  const m = p.m;
-  ctx.setTransform(DPR * f, 0, 0, DPR * f, DPR * x, DPR * y);
-  ctx.translate(dx, dy);
-  ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-  ctx.fill(path(p.d));
-}
-function spine(x, y, f, x0, y0, x1, y1) {
-  if (x1 <= x0 || y1 <= y0) return;             // pieces already touch: no run needed
-  ctx.setTransform(DPR * f, 0, 0, DPR * f, DPR * x, DPR * y);
-  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-}
-const OV = 0.6;                                  // pt the spine tucks under each piece
-// Right brace: ink top-left at (x,y), height len, font scale f (all screen px).
-function rbrace(x, y, len, f) {
-  const R = B.rbrace, D = len / f - R.L;         // extra length vs the reference brace
-  const [s0, s1] = R.spine;
-  spine(x, y, f, s0, R.topY[1] - OV, s1, R.midY[0] + D / 2 + OV);
-  spine(x, y, f, s0, R.midY[1] + D / 2 - OV, s1, R.botY[0] + D + OV);
-  piece(R.top, x, y, f, 0, 0);
-  piece(R.mid, x, y, f, 0, D / 2);
-  piece(R.bot, x, y, f, 0, D);
-}
-// Underbrace: ink top-left at (x,y), width len, font scale f.
-function ubrace(x, y, len, f) {
-  const U = B.ubrace, D = len / f - U.L;
-  const [s0, s1] = U.spine;
-  spine(x, y, f, U.leftX[1] - OV, s0, U.midX[0] + D / 2 + OV, s1);
-  spine(x, y, f, U.midX[1] + D / 2 - OV, s0, U.rightX[0] + D + OV, s1);
-  piece(U.left, x, y, f, 0, 0);
-  piece(U.midL, x, y, f, D / 2, 0);
-  piece(U.midR, x, y, f, D / 2, 0);
-  piece(U.right, x, y, f, D, 0);
-}
-
-// ============================================================================
-// Layout. Each level is stored NORMALISED: its height is 1 and it has aspect a
-// (width = a). Children are {x,y,s}: top-left (x,y), height s. Decorations are
-// glyphs {t:'g',g,x,y,s} or braces {t:'r'|'u',x,y,len,f}. Normalising every
-// level keeps every number O(1) however deep the zoom goes.
-// ============================================================================
-
-// Build a level from its child's size (aspect ca, height 1), in child units,
-// then normalise. 'V' stacks children with underbraces; 'H' chains them with
-// right braces. Both show first, second, an ellipsis, the last, then the seed.
-// `outer` builds the finished number's outermost row, which has no `⋯ }`: every
-// other level's ellipsis stands for a count set by the bracket around it, and
-// the outermost row has no bracket around it — so it has exactly the three
-// columns drawn.
-function buildLevel(kind, ca, outer = false) {
-  const cw = ca, ch = 1;
-  const kids = [], decos = [];
-  // This level's font scale: proportional to the child's short side, so level 1
-  // is TeX's natural setting and each level's type suits what it encloses.
-  const f = CFG.font * Math.min(cw, ch) * (kind === 'H' ? H_SCALE : 1);
-  const lf = f * CFG.label;                      // seed label scale
-  if (kind === 'V') {
-    const k3 = 3 * f;                            // TeX's \underbrace kern (3pt)
-    const ubH = B.ubrace.h * f;
-    const center = w => (cw - w) / 2;
-    let y = 0;
-    const child = () => { kids.push({ x: 0, y, s: ch }); y += ch; };
-    const brace = () => { y += k3; decos.push({ t: 'u', x: 0, y, len: cw, f }); y += ubH; };
-    child(); brace(); y += k3;
-    child(); brace(); y += k3;
-    decos.push({ t: 'g', g: VDOTS, x: center(VDOTS.w * f), y, s: f }); y += VDOTS.h * f + k3;
-    const last = kids.length; child(); brace();
-    y += k3;
-    decos.push({ t: 'g', g: SEED, x: center(SEED.w * lf), y, s: lf }); y += SEED.h * lf;
-    return finish(cw, y, kids, decos, last);
-  }
-  const gA = 1.5 * f, gB = 3 * f;
-  const rbW = B.rbrace.w * f;
-  const mid = h => (ch - h) / 2;                 // centre on the brace tip
-  let x = 0;
-  const child = () => { kids.push({ x, y: 0, s: ch }); x += cw; };
-  const brace = () => { x += gA; decos.push({ t: 'r', x, y: 0, len: ch, f }); x += rbW; };
-  child(); brace(); x += gB;
-  child(); brace(); x += gB;
-  if (!outer) {
-    decos.push({ t: 'g', g: CDOTS, x, y: mid(CDOTS.h * f), s: f }); x += CDOTS.w * f + gB;
-    brace(); x += gB;
-  }
-  const last = kids.length; child(); brace();
-  x += gA;
-  decos.push({ t: 'g', g: SEED, x, y: mid(SEED.h * lf), s: lf }); x += SEED.w * lf;
-  return finish(x, ch, kids, decos, last);
-}
-function finish(W, H, kids, decos, last) {
-  const k = 1 / H;
-  return {
-    a: W / H,
-    kids: kids.map(c => ({ x: c.x * k, y: c.y * k, s: c.s * k })),
-    decos: decos.map(d => d.t === 'g'
-      ? { t: 'g', g: d.g, x: d.x * k, y: d.y * k, s: d.s * k }
-      : { t: d.t, x: d.x * k, y: d.y * k, len: d.len * k, f: d.f * k }),
-    last,
-  };
-}
-
-// ---- Exact self-similarity --------------------------------------------------
-// A V-level is (3 + Dv) child-heights tall; an H-level is (3 + Dh) child-widths
-// wide, Dv and Dh being its decorations (braces, kerns, dots, seed) in the same
-// units. Over two levels the aspect ratio is multiplied by (3 + Dh) / (3 + Dv),
-// so unless Dv == Dh it drifts for ever and the picture never repeats. Scaling
-// the H-levels' font by Dv / Dh makes the two equal; then level 2 has exactly
-// the tower's aspect ratio, level 3 is laid out exactly like level 1, and the
-// whole structure is periodic with period 2 from the very start: every V-level
-// is a scaled copy of level 1 with each tower replaced by a level-2 row that
-// fills the same box. (Measured with trial levels, so it tracks ?font / ?label.)
-let H_SCALE = 1;
-{
-  const v = buildLevel('V', 2), h = buildLevel('H', 0.5);   // wide child, tall child
-  const Dv = 1 / v.kids[v.last].s - 3;           // V: height in child heights, minus 3
-  const Dh = h.a / 0.5 - 3;                      // H: width in child widths, minus 3
-  H_SCALE = Dv / Dh;
-}
-
-// Level 0 is the tower glyph itself. Levels then alternate V, H, V, H, ...
-const LEVELS = [{ a: TOWER.w / TOWER.h, kids: [], last: -1,
-                  decos: [{ t: 'g', g: TOWER, x: 0, y: 0, s: 1 / TOWER.h }] }];
-const NMAX = 64;                                 // zoom centre long converged (design.md)
-for (let n = 1; n <= NMAX; n++) LEVELS.push(buildLevel(n % 2 ? 'V' : 'H', LEVELS[n - 1].a));
-// Beyond NMAX the layout is periodic with period 2: reuse the level of matching
-// parity. (Not `NMAX - ((NMAX - n) % 2)`: JS `%` of a negative number is
-// negative, which yields NMAX+1 and runs off the end of the table.)
-const par = n => (n <= NMAX ? n : ((n - NMAX) % 2 === 0 ? NMAX : NMAX - 1));
-const lvl = n => LEVELS[par(n)];
-
-// Zoom centre. It lives in the LAST child at every level (next to the seed —
-// the end of the formula). C[n] is its position in level n's normalised box.
-// Level 1 fixes it: centre of the last tower + its underbrace + the seed.
-const C = [];
-{
-  const L1 = LEVELS[1], lk = L1.kids[L1.last];
-  C[1] = { x: L1.a / 2, y: (lk.y + 1) / 2 };
-  for (let n = 2; n <= NMAX; n++) {
-    const L = LEVELS[n], k = L.kids[L.last];
-    C[n] = { x: k.x + k.s * C[n - 1].x, y: k.y + k.s * C[n - 1].y };
-  }
-}
-const cen = n => C[par(n)];
-// Height ratio level n / level n-1. For an H-level this is exactly 1 (its
-// children sit side by side, so it is no taller than they are — it grows only in
-// width). For a V-level it is the same for every V-level: e^PERIOD_LOG.
-const grow = n => 1 / lvl(n).kids[lvl(n).last].s;
-const PERIOD_LOG = Math.log(grow(3));            // ln(zoom per period of 2 levels)
-
-// ---- The finished number's outermost row -------------------------------------
-// It is the ordinary row minus its `⋯ }` (see buildLevel). Until the click that
-// row was an ordinary one, so rather than jump, it closes up while the zoom
-// arrives: at w = 0 it is the ordinary row, at w = 1 the outermost one. The `⋯`
-// and its brace shrink and fade into the gap; the last column and everything
-// after it slide left by the gap's width. Every even level >= 2 has the same
-// layout (it is periodic), so one pair of layouts serves every possible top.
-const ROW = LEVELS[2], OUTER = buildLevel('H', LEVELS[1].a, true);
-const SEG0 = ROW.decos[2].x;                     // where the `⋯` starts
-const SEG1 = ROW.kids[ROW.last].x;               // where the last column starts
-const SEG = SEG1 - SEG0;                         // = ROW.a - OUTER.a
-function outerRow(w, N) {
-  const q = 1 - w, eps = 1e-12;
-  const kids = ROW.kids.map(k => (k.x >= SEG1 - eps ? { x: k.x - w * SEG, y: k.y, s: k.s } : k));
-  const decos = ROW.decos.map(d => {
-    if (d.x >= SEG1 - eps) return { ...d, x: d.x - w * SEG };
-    if (d.x < SEG0 - eps) return d;
-    const x = SEG0 + (d.x - SEG0) * q;           // inside the closing gap
-    return d.t === 'g'
-      ? { t: 'g', g: d.g, x, y: 0.5 - (0.5 - d.y) * q, s: d.s * q, alpha: q }
-      : { t: d.t, x, y: d.y, len: d.len, f: d.f * q, alpha: q };
-  });
-  const k = kids[ROW.last], c = cen(N - 1);
-  return { a: ROW.a - w * SEG, kids, decos, last: ROW.last,
-           C: { x: k.x + k.s * c.x, y: k.y + k.s * c.y } };     // the zoom centre in it
-}
-
-// ============================================================================
-// Drawing levels
-// ============================================================================
-let VW = 0, VH = 0, drawn = 0;
-const MIN_PX = 0.8;                              // stop recursing below this size
-const MIN_DECO = 0.35;                           // skip decorations smaller than this
-
-// ---- Level-of-detail cache --------------------------------------------------
-// A node smaller than CACHE_PX on screen holds thousands of descendants that are
-// all near or below pixel size; redrawing them as vectors every frame is what
-// makes the deep zoom slow. Instead such a node is drawn as ONE bitmap. The bitmap
-// is rendered once, by this same vector code, at the next half-octave size at or
-// above the node's size — so it is what the vectors would have drawn, downscaled by
-// at most 1/sqrt(2). The layout is periodic, and the towers — the only thing
-// that tells level n from level n+2 — are sub-pixel inside any bitmap of a level
-// >= LOD_LEVEL, so two bitmap families serve the whole infinite tail; each
-// earlier level gets its own.
-const CACHE_PX = 96;                             // CSS px; nodes this big stay vectors
-const LOD_LEVEL = 10;                            // towers are 6^-5 of the node here
-const lodKey = n => (n < LOD_LEVEL ? n : LOD_LEVEL + ((n - LOD_LEVEL) % 2));
-const caches = new Map();
-let building = false;
-// Bitmap of level n whose longest side is 2^(k/2) device px. Rendered on an
-// OffscreenCanvas and frozen into an immutable ImageBitmap (a plain <canvas>
-// where OffscreenCanvas is missing).
-function cached(n, k) {
-  const key = lodKey(n), id = key * 64 + k;
-  let c = caches.get(id);
-  if (c) return c;
-  const L = LEVELS[key];
-  const h = Math.pow(2, k / 2) / Math.max(L.a, 1), w = L.a * h;
-  const cw = Math.max(1, Math.ceil(w)), chh = Math.max(1, Math.ceil(h));
-  let cv;
-  if (typeof OffscreenCanvas !== 'undefined') cv = new OffscreenCanvas(cw, chh);
-  else { cv = document.createElement('canvas'); cv.width = cw; cv.height = chh; }
-  const saved = [ctx, VW, VH, DPR];
-  ctx = cv.getContext('2d'); VW = cw; VH = chh; DPR = 1;
-  ctx.fillStyle = ctx.strokeStyle = '#000'; ctx.lineCap = 'butt';
-  building = true;
-  try { drawLevel(key, 0, 0, h); }
-  finally { building = false; [ctx, VW, VH, DPR] = saved; }
-  const img = cv.transferToImageBitmap ? cv.transferToImageBitmap() : cv;
-  caches.set(id, c = { img, w, h });
-  return c;
-}
-
-function drawLevel(n, X, Y, H) {
-  const isTop = !building && n === cam.top;
-  const L = isTop ? cam.outer : lvl(n), W = L.a * H;
-  if (X > VW || Y > VH || X + W < 0 || Y + H < 0) return;   // off-screen
-  if (W < MIN_PX && H < MIN_PX) return;                    // sub-pixel
-  drawn++;
-  const S = Math.max(W, H);
-  if (!building && !isTop && S < CACHE_PX) {
-    const c = cached(n, Math.max(2, Math.ceil(2 * Math.log2(S * DPR))));
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(c.img, 0, 0, c.w, c.h, X * DPR, Y * DPR, W * DPR, H * DPR);
-    return;
-  }
-  for (const d of L.decos) {
-    if (d.alpha !== undefined) {                 // the outermost row's closing `⋯ }`
-      if (d.alpha < 0.004) continue;
-      ctx.globalAlpha = d.alpha;
-    }
-    const x = X + d.x * H, y = Y + d.y * H;
-    if (d.t === 'g') { if (d.s * H * 6 > MIN_DECO) glyph(d.g, x, y, d.s * H); }
-    else if (d.f * H * 6 > MIN_DECO) (d.t === 'r' ? rbrace : ubrace)(x, y, d.len * H, d.f * H);
-    ctx.globalAlpha = 1;
-  }
-  if (n > 0) for (const k of L.kids) drawLevel(n - 1, X + k.x * H, Y + k.y * H, k.s * H);
-}
-
-// ============================================================================
-// Camera
-// ============================================================================
-// A position along the zoom is a "framed level" λ: at λ = N (N even) level N,
-// finished as the outermost row, exactly fills the framing box, centred. Every
-// even level has the same height as its row, so even level n's screen height
-// at λ is
-//   hFit · e^((n − λ)·PERIOD_LOG/2)
-// and one unit of λ is a zoom of e^(PERIOD_LOG/2): "one level".
-const FIT_W = 0.92, FIT_H = 0.84;                // framing box, fraction of the viewport
-const hFit = () => Math.min(VH * FIT_H, VW * FIT_W / OUTER.a);
-// The start: level 1's last tower, its underbrace and the seed fill 70% of the
-// screen height. That fixes level 1's height — and level 2's, which is no taller.
-function lamStart() {
-  const L1 = LEVELS[1], lk = L1.kids[L1.last];
-  const h2 = VH * 0.7 / (1 - lk.y);
-  return 2 - 2 * Math.log(h2 / hFit()) / PERIOD_LOG;
-}
-// The layout repeats every 2 levels, and from level LAM_W up nothing below level
-// ~LAM_W−30 is ever visible, so there only λ mod 2 matters: positions are shifted
-// down by an even amount to keep every index small. Returns [λ', shift].
-const LAM_W = 100;
-function wrap(lam) {
-  if (lam < LAM_W) return [lam, 0];
-  const s = 2 * Math.floor((lam - LAM_W) / 2);
-  return [lam - s, s];
-}
-
-// The camera: position λ (wrapped); reference level K (even) and its screen
-// height h; the zoom centre's screen position (px, py); the top level, above
-// which there is nothing (Infinity until the click), and its layout `outer`.
-// All level numbers here are wrapped.
-const cam = { lam: 0, K: 2, h: 1, px: 0, py: 0, top: Infinity, outer: null, root: 2 };
-function setCamera(lam, top, px, py, outer = null) {
-  cam.lam = lam;
-  cam.K = Math.max(2, 2 * Math.ceil(lam / 2));
-  cam.h = hFit() * Math.exp((cam.K - lam) * PERIOD_LOG / 2);
-  cam.px = px; cam.py = py; cam.top = top; cam.outer = outer;
-}
-const layoutOf = n => (n === cam.top ? cam.outer : lvl(n));
-const centreOf = n => (n === cam.top ? cam.outer.C : cen(n));
-// The smallest level (at most the top) whose box covers the viewport; everything
-// visible lies inside it.
-function coverLevel() {
-  let n = cam.K, h = cam.h;
-  for (let i = 0; i < 400 && n < cam.top; i++) {
-    const c = centreOf(n), a = layoutOf(n).a;
-    const X = cam.px - c.x * h, Y = cam.py - c.y * h;
-    if (X <= 0 && Y <= 0 && X + a * h >= VW && Y + h >= VH) break;
-    n++; h *= grow(n);
-  }
-  return [n, h];
-}
-function render() {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = ctx.strokeStyle = '#000';
-  ctx.lineCap = 'butt';                          // TeX rules have square ends
-  const [n, h] = coverLevel();
-  cam.root = n;
-  const c = centreOf(n);
-  drawn = 0;
-  drawLevel(n, cam.px - c.x * h, cam.py - c.y * h, h);
-}
-
-// ============================================================================
-// Motion
-// ============================================================================
-const LG = Math.log(Math.max(1.0001, CFG.grow));
-const lnExpm1 = x => (x > 30 ? x + Math.log1p(-Math.exp(-x)) : Math.log(Math.expm1(x)));
-// Beyond this many levels a double no longer pins the phase within a period. The
-// picture is pure flicker long before that, so from there each frame just shows a
-// random phase — which is what any exact phase would look like anyway.
-const EXACT = 1e12, LN_EXACT = Math.log(EXACT);
-
-// ---- Before the click --------------------------------------------------------
-// Speed v0·grow^t levels/s; distance P(t) = v0·(grow^t − 1)/ln grow. Both in log
-// form, so however long it runs nothing overflows.
-const lnSpeed = t => Math.log(CFG.v0) + t * LG;
-const lnDist = t => Math.log(CFG.v0 / LG) + lnExpm1(Math.max(t, 1e-12) * LG);
-
-// ---- The ending --------------------------------------------------------------
-// At the click the number gets its outermost level N: the next row up that can
-// be shown whole — the first even level at or above both where we are (plus
-// D_MIN, so the last moves have a little room) and everything now on screen.
-// The zoom carries on exactly as before, same accelerating speed, and stops dead
-// when level N fills the framing box. On the way the zoom centre drifts from
-// (cx, cy) to where centring N puts it, and N's `⋯ }` closes up. Going fast,
-// all of that is over by the next frame; at the very start it takes a few
-// seconds. The chosen position is the one on screen at the click, so in the
-// flicker (where each frame is a random phase) it is the frame you clicked on.
-const D_MIN = 0.35;
-let mode = 'zoom';                // 'zoom' → click → 'ending' → 'done'
-let clock = 0;                    // virtual seconds of zooming
-let E = null;                     // the ending's state
-
-function startEnding() {
-  const lp = lnDist(clock);
-  const exact = lp < LN_EXACT;
-  // Where we are. In the flicker, keep the frame on screen rather than re-roll —
-  // unless none has been shown yet (flicker frames always have λ >= LAM_W).
-  if (exact || cam.lam < LAM_W) updateView();
-  const [root] = coverLevel();
-  const N = 2 * Math.ceil(Math.max(cam.lam + D_MIN, root) / 2);  // wrapped, like cam.lam
-  E = {
-    N, D: N - cam.lam, R: N - cam.lam, tau: 0, lnv: lnSpeed(clock),
-    // For the HUD: the true level numbers are the wrapped ones plus `shift`;
-    // when astronomical, only their logarithm (the distance come) is kept.
-    shift: exact ? wrap(lamStart() + Math.exp(lp))[1] : null, lnN: lp,
-  };
-  mode = 'ending';
-  paused = false;                 // a click while paused means "show me the end"
-  dirty = true;
-}
-
-function stepEnding(dt) {
-  E.tau += dt;
-  // Distance covered since the click at the unchanged law: v·(grow^τ − 1)/ln grow,
-  // v being the speed at the click (in logs: v may be astronomical).
-  const lnCovered = E.lnv + lnExpm1(E.tau * LG) - Math.log(LG);
-  if (lnCovered >= Math.log(E.D)) finishEnding();
-  else E.R = E.D - Math.exp(lnCovered);
-}
-function finishEnding() { E.R = 0; mode = 'done'; dirty = true; }
-
-// ---- The view for the current state --------------------------------------------
-// Sets the camera and returns the level on show for the HUD, as { v } when it is
-// an ordinary number or { ln } (its natural log) when it is astronomical.
-const smootherstep = x => x * x * x * (x * (6 * x - 15) + 10);
-function updateView() {
-  const px0 = VW * CFG.cx, py0 = VH * CFG.cy;
-  if (mode === 'zoom') {
-    const lp = lnDist(clock);
-    if (lp >= LN_EXACT) {
-      setCamera(LAM_W + 2 * Math.random(), Infinity, px0, py0);
-      return { ln: lp };
-    }
-    const lam = lamStart() + Math.exp(lp);
-    setCamera(wrap(lam)[0], Infinity, px0, py0);
-    return { v: lam };
-  }
-  // Ending / done: λ = N − R, in the wrapped numbering fixed at the click.
-  const lam = E.N - E.R;
-  const w = smootherstep(Math.min(1, Math.max(0, 1 - E.R / E.D)));
-  const outer = outerRow(w, E.N), hf = hFit();
-  // Drift the zoom centre to where centring the top level puts it.
-  const px = px0 + w * (VW / 2 + (outer.C.x - outer.a / 2) * hf - px0);
-  const py = py0 + w * (VH / 2 + (outer.C.y - 0.5) * hf - py0);
-  setCamera(lam, E.N, px, py, outer);
-  return E.shift !== null ? { v: lam + E.shift } : { ln: E.lnN };
-}
-
-// ============================================================================
-// Head-up display
-// ============================================================================
-const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-function fmt(shown, whole) {
-  if (shown.v !== undefined && Math.abs(shown.v) < 1e6)
-    return whole ? Math.round(shown.v).toLocaleString('en-US') : shown.v.toFixed(2);
-  const ln = shown.ln !== undefined ? shown.ln : Math.log(shown.v);
-  const e10 = ln / Math.LN10, ex = Math.floor(e10);
-  let m = Math.pow(10, e10 - ex);
-  let mant = m.toFixed(2);
-  if (mant === '10.00') { mant = '1.00'; return `${mant}×10${String(ex + 1).replace(/\d/g, d => SUP[d])}`; }
-  return `${mant}×10${String(ex).replace(/\d/g, d => SUP[d])}`;
-}
-function hud(shown) {
-  let s;
-  if (mode === 'done') s = `level ${fmt(shown, true)} — the whole number · click to start again`;
-  else s = `level ${fmt(shown, false)}` + (paused ? ' · paused (space)' : '') +
-           (mode === 'zoom' && clock < 8 ? ' · click to end it' : '');
-  document.getElementById('hud').textContent = s;
-}
-
-// ============================================================================
-// Main loop
-// ============================================================================
-// Setting a canvas's size clears it, so this is only ever called right before a
-// redraw (never from a bare 'resize' event, which would blank the picture until
-// the next frame).
-function resize() {
-  DPR = window.devicePixelRatio || 1;
-  VW = innerWidth; VH = innerHeight;
-  ctx.canvas.width = Math.round(VW * DPR);
-  ctx.canvas.height = Math.round(VH * DPR);
-}
-// Window resized, or moved to a screen with a different pixel density.
-const sizeChanged = () =>
-  innerWidth !== VW || innerHeight !== VH || (window.devicePixelRatio || 1) !== DPR;
-
-function advance(dt) {
-  if (mode === 'zoom') clock += dt;
-  else if (mode === 'ending') stepEnding(dt);
-}
-function restart() { mode = 'zoom'; clock = 0; E = null; paused = false; dirty = true; }
-
-// Time runs on a virtual clock that advances by whole display frames of a steady
-// length (the median frame interval), not by the jittery wall clock. At speeds of
-// thousands of levels per second the picture is a stroboscope, and only exactly
-// even steps make it settle into the clean still / backward / forward beats.
-// A frame that took several intervals advances several; a hidden tab, whose
-// frames stop, simply pauses.
-let paused = false, lastNow = null, Tref = 1 / 60;
-let dirty = true;                 // redraw even though nothing is moving
-const deltas = [];
-function frame(now) {
-  requestAnimationFrame(frame);
-  // The viewport can still be 0x0 when the page first loads, and a 0-height view
-  // makes log(VH) = -Infinity. Track the live size every frame and skip frames
-  // until there is something to draw into.
-  if (sizeChanged()) { resize(); dirty = true; }
-  if (VW < 2 || VH < 2) return;
-  const moving = !paused && mode !== 'done';
-  if (lastNow !== null) {
-    const d = (now - lastNow) / 1000;
-    if (d > 0 && d < 0.25) {
-      deltas.push(d);
-      if (deltas.length > 61) deltas.shift();
-      if (deltas.length >= 5) Tref = [...deltas].sort((a, b) => a - b)[deltas.length >> 1];
-    }
-    if (moving) advance(Math.min(4, Math.max(1, Math.round(d / Tref))) * Tref);
-  }
-  lastNow = now;
-  // A still picture (paused, or the finished number) is drawn once, not 60 times
-  // a second — and a paused flicker frame stays put instead of re-rolling.
-  if (!moving && !dirty) return;
-  dirty = false;
-  const shown = updateView();
-  render();
-  hud(shown);
-}
-
-// ?t=N (&click=C): draw the state at virtual time N — clicked at time C if given —
-// and redraw it whenever the window is resized (testing). Polls with setTimeout,
-// not requestAnimationFrame: a headless browser running under a virtual-time
-// budget does not reliably deliver animation frames, but it does run timers.
-function simulate(t, click) {
-  restart();
-  if (click === null || t <= click) { clock = Math.max(0, t); return; }
-  clock = Math.max(0, click);
-  startEnding();
-  let left = t - clock;
-  while (left > 1e-12 && mode === 'ending') {
-    const s = Math.min(1 / 60, left);
-    advance(s); left -= s;
-  }
-}
-let benched = false;
-function still() {
-  if (innerWidth < 2 || innerHeight < 2) { setTimeout(still, 20); return; }
-  if (sizeChanged()) resize();
-  simulate(CFG.t, CFG.click);
-  const shown = updateView();
-  render();
-  hud(shown);
-  if (Q.has('bench') && !benched) { benched = true; bench(); }
-}
-// ?t=N&bench: time repeated renders of that frame; the result goes in the title.
-function bench() {
-  const N = 60, t0 = performance.now();
-  for (let i = 0; i < N; i++) { updateView(); render(); }
-  const ms = (performance.now() - t0) / N;
-  document.title = `BENCH ${ms.toFixed(2)} ms/frame, ${drawn} nodes, ${VW}x${VH}`;
-}
-
-window.addEventListener('load', () => {
-  ctx = document.getElementById('c').getContext('2d');
-  document.getElementById('c').addEventListener('click', () => {
-    if (VW < 2 || VH < 2) return;
-    if (mode === 'zoom') startEnding();
-    else if (mode === 'done') restart();
-  });
-  addEventListener('keydown', e => {
-    if (e.key === 'r' || e.key === 'R') restart();
-    else if (e.key === ' ' || e.key === 'p' || e.key === 'P') { paused = !paused; dirty = true; e.preventDefault(); }
-  });
-  if (CFG.t !== null) { still(); addEventListener('resize', still); }
-  else requestAnimationFrame(frame);
-});
-</script>
+  <footer>On each page: click to finish the number, click again to start over ·
+  space pauses · R restarts. How it all works: design.md.</footer>
+</main>
 </body>
 </html>
